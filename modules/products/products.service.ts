@@ -5,6 +5,7 @@ import { CreateProductInput, UpdateProductInput, ProductQuery } from '@/lib/vali
 export class ProductsService {
   async list(query: ProductQuery) {
     const { page, limit, search, category, isActive } = query
+    const brandId = (query as any).brandId as string | undefined
 
     const where = {
       ...(search && {
@@ -16,15 +17,15 @@ export class ProductsService {
       }),
       ...(category && { category: { equals: category, mode: 'insensitive' as const } }),
       ...(isActive !== undefined && { isActive }),
+      ...(brandId && { brandId }),
     }
 
     const [products, total] = await Promise.all([
       db.product.findMany({
         where,
         include: {
-          sizes: {
-            orderBy: { size: 'asc' },
-          },
+          sizes: { orderBy: { size: 'asc' } },
+          brand: { select: { id: true, name: true } },
           _count: { select: { movements: true } },
         },
         orderBy: { createdAt: 'desc' },
@@ -54,7 +55,6 @@ export class ProductsService {
     const existingSku = await db.product.findUnique({ where: { sku: input.sku } })
     if (existingSku) throw new Error(`SKU "${input.sku}" already exists`)
 
-    // Atomic: create product + sizes in a single transaction
     return db.$transaction(async (tx) => {
       const product = await tx.product.create({
         data: {
@@ -62,6 +62,7 @@ export class ProductsService {
           description: input.description,
           sku: input.sku.toUpperCase(),
           category: input.category,
+          brandId: (input as any).brandId ?? null,
           imageUrl: input.imageUrl,
           sizes: {
             create: input.sizes.map((s) => ({
@@ -99,6 +100,7 @@ export class ProductsService {
         ...(input.description !== undefined && { description: input.description }),
         ...(input.sku && { sku: input.sku.toUpperCase() }),
         ...(input.category !== undefined && { category: input.category }),
+        ...((input as any).brandId !== undefined && { brandId: (input as any).brandId ?? null }),
         ...(input.imageUrl !== undefined && { imageUrl: input.imageUrl }),
         ...(input.isActive !== undefined && { isActive: input.isActive }),
       },
