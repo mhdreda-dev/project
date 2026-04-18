@@ -1,0 +1,16 @@
+import { NextRequest } from 'next/server'
+import { auth } from '@/lib/auth'
+import { stockService } from '@/modules/stock/stock.service'
+import { apiSuccess, apiError } from '@/lib/utils'
+
+export async function GET(_req: NextRequest) {
+  const session = await auth()
+  if (!session) return apiError('Unauthorized', 401)
+
+  try {
+    const items = await stockService.getLowStock()
+    return apiSuccess(items)
+  } catch {
+    return apiError('Failed to fetch low stock', 500)
+  }
+}
