@@ -1,5 +1,5 @@
 import { db } from '@/lib/db'
-import { ActivityAction } from '@prisma/client'
+import { ActivityAction, Prisma } from '@prisma/client'
 
 interface LogActivityParams {
   userId?: string
@@ -21,11 +21,11 @@ export async function logActivity(params: LogActivityParams): Promise<void> {
         action: params.action,
         entity: params.entity,
         entityId: params.entityId ?? null,
-        oldValues: params.oldValues ?? undefined,
-        newValues: params.newValues ?? undefined,
+        oldValues: params.oldValues as Prisma.InputJsonValue | undefined,
+        newValues: params.newValues as Prisma.InputJsonValue | undefined,
         ipAddress: params.ipAddress ?? null,
         userAgent: params.userAgent ?? null,
-        metadata: params.metadata ?? undefined,
+        metadata: params.metadata as Prisma.InputJsonValue | undefined,
       },
     })
   } catch {
