@@ -3,6 +3,10 @@ import { productsService } from '@/modules/products/products.service'
 import { brandsService } from '@/modules/brands/brands.service'
 import { ProductsClient } from './products-client'
 
+export const dynamic = 'force-dynamic'
+
+const EMPTY_META = { total: 0, page: 1, limit: 12, totalPages: 0, hasNext: false, hasPrev: false }
+
 export default async function ProductsPage({
   searchParams,
 }: {
@@ -13,16 +17,46 @@ export default async function ProductsPage({
   const search = searchParams.search
   const category = searchParams.category
 
-  const [{ products, meta }, allBrands] = await Promise.all([
-    productsService.list({ page, limit: 12, search, category }),
-    brandsService.listAll(),
-  ])
+  let products: any[] = []
+  let meta: any = EMPTY_META
+  let allBrands: { id: string; name: string }[] = []
+  let loadError: string | null = null
+
+  try {
+    const result = await productsService.list({ page, limit: 12, search, category })
+    products = result.products ?? []
+    meta = result.meta ?? EMPTY_META
+  } catch (e) {
+    loadError = e instanceof Error ? e.message : 'Failed to load products'
+    console.error('[ProductsPage] products load error:', e)
+  }
+
+  try {
+    const list = await brandsService.listAll()
+    allBrands = (list as { id: string; name: string }[]).map((b) => ({ id: b.id, name: b.name }))
+  } catch (e) {
+    console.error('[ProductsPage] brands load error:', e)
+  }
+
+  if (loadError) {
+    return (
+      <div className="p-6">
+        <h1 className="text-2xl font-semibold text-slate-900 mb-2">Products unavailable</h1>
+        <p className="text-sm text-slate-600">
+          Could not load products. The database may be missing the latest migration.
+        </p>
+        <pre className="mt-3 text-xs text-slate-500 bg-slate-50 border border-slate-200 rounded-lg p-3 overflow-auto">
+          {loadError}
+        </pre>
+      </div>
+    )
+  }
 
   return (
     <ProductsClient
       initialProducts={products as any}
       meta={meta}
-      brands={(allBrands as { id: string; name: string }[]).map((b) => ({ id: b.id, name: b.name }))}
+      brands={allBrands}
       isAdmin={session?.user?.role === 'ADMIN'}
     />
   )
