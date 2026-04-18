@@ -86,19 +86,22 @@ model Brand {
 }
 
 model Product {
-  id          String          @id @default(cuid())
-  name        String
-  description String?         @db.Text
-  sku         String          @unique
-  category    String?
-  brandId     String?
-  imageUrl    String?
-  isActive    Boolean         @default(true)
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
-  brand       Brand?          @relation(fields: [brandId], references: [id])
-  sizes       ProductSize[]
-  movements   StockMovement[]
+  id                String          @id @default(cuid())
+  name              String
+  description       String?         @db.Text
+  sku               String          @unique
+  category          String?
+  brandId           String?
+  imageUrl          String?
+  price             Decimal         @default(0) @db.Decimal(10, 2)
+  costPrice         Decimal?        @db.Decimal(10, 2)
+  lowStockThreshold Int             @default(5)
+  isActive          Boolean         @default(true)
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  brand             Brand?          @relation(fields: [brandId], references: [id])
+  sizes             ProductSize[]
+  movements         StockMovement[]
 
   @@index([sku])
   @@index([category])
@@ -114,7 +117,7 @@ model ProductSize {
   quantity    Int             @default(0)
   minQuantity Int             @default(0)
   maxQuantity Int?
-  price       Decimal         @db.Decimal(10, 2)
+  price       Decimal?        @db.Decimal(10, 2)
   costPrice   Decimal?        @db.Decimal(10, 2)
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt

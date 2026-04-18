@@ -95,17 +95,33 @@ export class StockService {
   }
 
   async getLowStock() {
-    return db.productSize.findMany({
-      where: {
-        product: { isActive: true },
-      },
+    const products = await db.product.findMany({
+      where: { isActive: true },
       include: {
-        product: { select: { name: true, sku: true, category: true } },
+        sizes: true,
       },
-      orderBy: { quantity: 'asc' },
-    }).then((sizes) =>
-      sizes.filter((s) => s.quantity <= s.minQuantity),
-    )
+    })
+    // Low stock if total quantity across sizes <= product.lowStockThreshold
+    return products
+      .map((p) => ({
+        product: { name: p.name, sku: p.sku, category: p.category },
+        productId: p.id,
+        totalQty: p.sizes.reduce((s, sz) => s + sz.quantity, 0),
+        threshold: p.lowStockThreshold,
+        sizes: p.sizes,
+      }))
+      .filter((r) => r.totalQty <= r.threshold)
+      .sort((a, b) => a.totalQty - b.totalQty)
+      .flatMap((r) =>
+        r.sizes.map((sz) => ({
+          id: sz.id,
+          size: sz.size,
+          quantity: sz.quantity,
+          minQuantity: r.threshold,
+          product: r.product,
+          productId: r.productId,
+        })),
+      )
   }
 
   async getMovementChart(days = 30) {

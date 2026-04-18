@@ -5,7 +5,7 @@ import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import {
   Plus, Search, Package, Pencil, Trash2, X, ChevronLeft, ChevronRight,
-  AlertTriangle, Loader2,
+  AlertTriangle, Loader2, Check,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -24,10 +24,6 @@ type ProductSize = {
   id: string
   size: string
   quantity: number
-  minQuantity: number
-  maxQuantity: number | null
-  price: number
-  costPrice: number | null
 }
 
 type Product = {
@@ -37,11 +33,14 @@ type Product = {
   category: string | null
   description: string | null
   imageUrl: string | null
+  price: number | string
+  costPrice: number | string | null
+  lowStockThreshold: number
   isActive: boolean
   brandId: string | null
   brand: { id: string; name: string } | null
   sizes: ProductSize[]
-  _count: { movements: number }
+  _count?: { movements: number }
 }
 
 interface PaginationMeta {
@@ -60,12 +59,12 @@ interface Props {
   isAdmin: boolean
 }
 
-type SizePreset = { label: string; sizes: string[] }
+type PresetKey = 'clothing' | 'shoes' | 'other'
 
-const SIZE_PRESETS: Record<string, SizePreset> = {
-  clothing: { label: 'Clothing', sizes: ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL'] },
-  shoes: { label: 'Shoes', sizes: ['35', '36', '37', '38', '39', '40', '41', '42', '43', '44', '45', '46'] },
-  other: { label: 'Other', sizes: [] },
+const SIZE_PRESETS: Record<PresetKey, { label: string; sizes: string[] }> = {
+  clothing: { label: 'Clothing', sizes: ['S', 'M', 'L', 'XL', 'XXL'] },
+  shoes:    { label: 'Shoes',    sizes: ['38', '39', '40', '41', '42', '43', '44', '45'] },
+  other:    { label: 'Other',    sizes: [] },
 }
 
 const DEFAULT_FORM = {
@@ -75,14 +74,13 @@ const DEFAULT_FORM = {
   description: '',
   imageUrl: '',
   brandId: '',
+  price: '',
+  costPrice: '',
+  lowStockThreshold: '5',
   isActive: true,
 }
 
-type SizeRow = { size: string; quantity: number; minQuantity: number; maxQuantity: number; price: number; costPrice: number }
-
-function emptySize(size = ''): SizeRow {
-  return { size, quantity: 0, minQuantity: 5, maxQuantity: 0, price: 0, costPrice: 0 }
-}
+type SelectedSize = { size: string; quantity: number }
 
 export function ProductsClient({ initialProducts, meta: initialMeta, brands, isAdmin }: Props) {
   const router = useRouter()
@@ -99,8 +97,9 @@ export function ProductsClient({ initialProducts, meta: initialMeta, brands, isA
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState<Product | null>(null)
   const [form, setForm] = useState(DEFAULT_FORM)
-  const [sizes, setSizes] = useState<SizeRow[]>([emptySize()])
-  const [productType, setProductType] = useState('other')
+  const [preset, setPreset] = useState<PresetKey>('other')
+  const [selected, setSelected] = useState<SelectedSize[]>([])
+  const [customSize, setCustomSize] = useState('')
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState<string | null>(null)
 
@@ -148,8 +147,9 @@ export function ProductsClient({ initialProducts, meta: initialMeta, brands, isA
   function openCreate() {
     setEditing(null)
     setForm(DEFAULT_FORM)
-    setSizes([emptySize()])
-    setProductType('other')
+    setPreset('other')
+    setSelected([])
+    setCustomSize('')
     setModalOpen(true)
   }
 
@@ -162,70 +162,71 @@ export function ProductsClient({ initialProducts, meta: initialMeta, brands, isA
       description: product.description ?? '',
       imageUrl: product.imageUrl ?? '',
       brandId: product.brandId ?? '',
+      price: String(product.price ?? ''),
+      costPrice: product.costPrice != null ? String(product.costPrice) : '',
+      lowStockThreshold: String(product.lowStockThreshold ?? 5),
       isActive: product.isActive,
     })
-    setSizes(
-      product.sizes.length > 0
-        ? product.sizes.map((s) => ({
-            size: s.size,
-            quantity: s.quantity,
-            minQuantity: s.minQuantity,
-            maxQuantity: s.maxQuantity ?? 0,
-            price: Number(s.price),
-            costPrice: Number(s.costPrice ?? 0),
-          }))
-        : [emptySize()],
-    )
-    setProductType('other')
+    // Infer preset from sizes
+    const sizes = product.sizes.map((s) => s.size)
+    const inClothing = sizes.every((s) => SIZE_PRESETS.clothing.sizes.includes(s)) && sizes.length > 0
+    const inShoes = sizes.every((s) => SIZE_PRESETS.shoes.sizes.includes(s)) && sizes.length > 0
+    setPreset(inClothing ? 'clothing' : inShoes ? 'shoes' : 'other')
+    setSelected(product.sizes.map((s) => ({ size: s.size, quantity: s.quantity })))
+    setCustomSize('')
     setModalOpen(true)
   }
 
-  function applyPreset(type: string) {
-    setProductType(type)
-    const preset = SIZE_PRESETS[type]
-    if (preset && preset.sizes.length > 0) {
-      setSizes(preset.sizes.map((s) => emptySize(s)))
-    }
-  }
-
-  function updateSize(i: number, field: keyof SizeRow, value: string | number) {
-    setSizes((prev) => {
-      const next = [...prev]
-      next[i] = { ...next[i], [field]: value }
-      return next
+  function toggleSize(sizeLabel: string) {
+    setSelected((prev) => {
+      const existing = prev.find((s) => s.size === sizeLabel)
+      if (existing) return prev.filter((s) => s.size !== sizeLabel)
+      return [...prev, { size: sizeLabel, quantity: 0 }]
     })
   }
 
-  function addSize() {
-    setSizes((prev) => [...prev, emptySize()])
+  function updateSelectedQty(sizeLabel: string, qty: number) {
+    setSelected((prev) => prev.map((s) => (s.size === sizeLabel ? { ...s, quantity: qty } : s)))
   }
 
-  function removeSize(i: number) {
-    setSizes((prev) => prev.filter((_, idx) => idx !== i))
+  function addCustomSize() {
+    const label = customSize.trim()
+    if (!label) return
+    if (selected.some((s) => s.size === label)) {
+      setCustomSize('')
+      return
+    }
+    setSelected((prev) => [...prev, { size: label, quantity: 0 }])
+    setCustomSize('')
+  }
+
+  function removeSelected(sizeLabel: string) {
+    setSelected((prev) => prev.filter((s) => s.size !== sizeLabel))
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (sizes.length === 0 || sizes.some((s) => !s.size.trim())) {
-      toast({ title: 'Please fill in all size names', variant: 'destructive' })
+
+    const priceNum = Number(form.price)
+    if (!Number.isFinite(priceNum) || priceNum < 0) {
+      toast({ title: 'Enter a valid sale price', variant: 'destructive' })
       return
     }
+
     setSaving(true)
     try {
       const payload = {
-        ...form,
+        name: form.name.trim(),
+        sku: form.sku.trim(),
         brandId: form.brandId || null,
-        category: form.category || undefined,
-        description: form.description || undefined,
-        imageUrl: form.imageUrl || undefined,
-        sizes: sizes.map((s) => ({
-          size: s.size,
-          quantity: Number(s.quantity),
-          minQuantity: Number(s.minQuantity),
-          maxQuantity: Number(s.maxQuantity) || undefined,
-          price: Number(s.price),
-          costPrice: Number(s.costPrice) || undefined,
-        })),
+        category: form.category || null,
+        description: form.description || null,
+        imageUrl: form.imageUrl || null,
+        price: priceNum,
+        costPrice: form.costPrice ? Number(form.costPrice) : null,
+        lowStockThreshold: Number(form.lowStockThreshold) || 0,
+        isActive: form.isActive,
+        sizes: selected.map((s) => ({ size: s.size, quantity: Number(s.quantity) || 0 })),
       }
       const url = editing ? `/api/products/${editing.id}` : '/api/products'
       const method = editing ? 'PATCH' : 'POST'
@@ -263,6 +264,8 @@ export function ProductsClient({ initialProducts, meta: initialMeta, brands, isA
   }
 
   const hasFilters = search || brandFilter || statusFilter
+  const presetSizes = SIZE_PRESETS[preset].sizes
+  const customSelected = selected.filter((s) => !presetSizes.includes(s.size))
 
   return (
     <div>
@@ -339,25 +342,17 @@ export function ProductsClient({ initialProducts, meta: initialMeta, brands, isA
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {products.map((product) => {
             const totalQty = product.sizes.reduce((s, sz) => s + sz.quantity, 0)
-            const isLow = product.sizes.some((s) => s.quantity <= s.minQuantity)
-            const avgPrice = product.sizes.length > 0
-              ? product.sizes.reduce((s, sz) => s + Number(sz.price), 0) / product.sizes.length
-              : 0
+            const isLow = totalQty <= (product.lowStockThreshold ?? 0)
+            const priceNum = Number(product.price ?? 0)
 
             return (
               <div
                 key={product.id}
                 className="bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all overflow-hidden group"
               >
-                {/* Image */}
                 <div className="relative h-40 bg-slate-50 flex items-center justify-center overflow-hidden">
                   {product.imageUrl ? (
-                    <Image
-                      src={product.imageUrl}
-                      alt={product.name}
-                      fill
-                      className="object-cover"
-                    />
+                    <Image src={product.imageUrl} alt={product.name} fill className="object-cover" />
                   ) : (
                     <Package className="h-10 w-10 text-slate-200" />
                   )}
@@ -366,7 +361,7 @@ export function ProductsClient({ initialProducts, meta: initialMeta, brands, isA
                       <Badge variant="secondary" className="text-xs">Inactive</Badge>
                     </div>
                   )}
-                  {isLow && (
+                  {isLow && product.isActive && (
                     <div className="absolute top-2 right-2">
                       <Badge variant="warning" className="text-[10px] px-1.5 py-0 gap-1">
                         <AlertTriangle className="h-2.5 w-2.5" />
@@ -395,7 +390,6 @@ export function ProductsClient({ initialProducts, meta: initialMeta, brands, isA
                   )}
                 </div>
 
-                {/* Info */}
                 <div className="p-4">
                   <div className="mb-1">
                     {product.brand && (
@@ -405,34 +399,32 @@ export function ProductsClient({ initialProducts, meta: initialMeta, brands, isA
                     <p className="text-xs text-slate-400 mt-0.5">SKU: {product.sku}</p>
                   </div>
 
-                  <div className="flex flex-wrap gap-1 my-2">
-                    {product.sizes.slice(0, 5).map((s) => (
-                      <span
-                        key={s.id}
-                        className={`text-[10px] px-1.5 py-0.5 rounded border font-medium ${
-                          s.quantity <= s.minQuantity
-                            ? 'bg-amber-50 border-amber-200 text-amber-700'
-                            : 'bg-slate-50 border-slate-200 text-slate-600'
-                        }`}
-                      >
-                        {s.size}
-                      </span>
-                    ))}
-                    {product.sizes.length > 5 && (
-                      <span className="text-[10px] text-slate-400">+{product.sizes.length - 5}</span>
-                    )}
-                  </div>
+                  {product.sizes.length > 0 && (
+                    <div className="flex flex-wrap gap-1 my-2">
+                      {product.sizes.slice(0, 6).map((s) => (
+                        <span
+                          key={s.id}
+                          className="text-[10px] px-1.5 py-0.5 rounded border font-medium bg-slate-50 border-slate-200 text-slate-600"
+                        >
+                          {s.size}
+                        </span>
+                      ))}
+                      {product.sizes.length > 6 && (
+                        <span className="text-[10px] text-slate-400">+{product.sizes.length - 6}</span>
+                      )}
+                    </div>
+                  )}
 
                   <div className="flex items-center justify-between pt-2 border-t border-slate-50">
                     <div>
-                      <p className="text-xs text-slate-400">Total stock</p>
+                      <p className="text-xs text-slate-400">Stock</p>
                       <p className={`text-sm font-semibold ${isLow ? 'text-amber-600' : 'text-slate-800'}`}>
                         {totalQty} units
                       </p>
                     </div>
                     <div className="text-right">
-                      <p className="text-xs text-slate-400">Avg. price</p>
-                      <p className="text-sm font-semibold text-slate-800">{formatCurrency(avgPrice)}</p>
+                      <p className="text-xs text-slate-400">Price</p>
+                      <p className="text-sm font-semibold text-slate-800">{formatCurrency(priceNum)}</p>
                     </div>
                   </div>
                 </div>
@@ -478,14 +470,13 @@ export function ProductsClient({ initialProducts, meta: initialMeta, brands, isA
             <DialogTitle>{editing ? 'Edit Product' : 'New Product'}</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-5">
-            {/* Image */}
             <ImageUpload
               value={form.imageUrl}
               onChange={(url) => setForm((f) => ({ ...f, imageUrl: url ?? '' }))}
             />
 
             {/* Basic info */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="name">Name *</Label>
                 <Input
@@ -510,7 +501,7 @@ export function ProductsClient({ initialProducts, meta: initialMeta, brands, isA
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="brand">Brand</Label>
                 <select
@@ -549,107 +540,157 @@ export function ProductsClient({ initialProducts, meta: initialMeta, brands, isA
               />
             </div>
 
+            {/* Pricing (product-level) */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div>
+                <Label htmlFor="price">Sale Price *</Label>
+                <Input
+                  id="price"
+                  type="number"
+                  step="0.01"
+                  min={0}
+                  value={form.price}
+                  onChange={(e) => setForm((f) => ({ ...f, price: e.target.value }))}
+                  placeholder="0.00"
+                  required
+                  className="mt-1 rounded-xl"
+                />
+              </div>
+              <div>
+                <Label htmlFor="costPrice">Cost Price</Label>
+                <Input
+                  id="costPrice"
+                  type="number"
+                  step="0.01"
+                  min={0}
+                  value={form.costPrice}
+                  onChange={(e) => setForm((f) => ({ ...f, costPrice: e.target.value }))}
+                  placeholder="0.00"
+                  className="mt-1 rounded-xl"
+                />
+              </div>
+              <div>
+                <Label htmlFor="lowStock">Low Stock Threshold</Label>
+                <Input
+                  id="lowStock"
+                  type="number"
+                  min={0}
+                  value={form.lowStockThreshold}
+                  onChange={(e) => setForm((f) => ({ ...f, lowStockThreshold: e.target.value }))}
+                  className="mt-1 rounded-xl"
+                />
+              </div>
+            </div>
+
             {/* Sizes */}
             <div>
               <div className="flex items-center justify-between mb-2">
-                <Label>Sizes & Stock *</Label>
-                {!editing && (
-                  <div className="flex gap-1.5">
-                    {Object.entries(SIZE_PRESETS).map(([key, p]) => (
+                <Label>Sizes</Label>
+                <div className="flex gap-1.5">
+                  {(Object.keys(SIZE_PRESETS) as PresetKey[]).map((key) => (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => setPreset(key)}
+                      className={`text-xs px-2.5 py-1 rounded-lg border transition-colors ${
+                        preset === key
+                          ? 'bg-blue-600 text-white border-blue-600'
+                          : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'
+                      }`}
+                    >
+                      {SIZE_PRESETS[key].label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Preset chips (multi-select) */}
+              {presetSizes.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 mb-3">
+                  {presetSizes.map((size) => {
+                    const isSelected = selected.some((s) => s.size === size)
+                    return (
                       <button
-                        key={key}
+                        key={size}
                         type="button"
-                        onClick={() => applyPreset(key)}
-                        className={`text-xs px-2.5 py-1 rounded-lg border transition-colors ${
-                          productType === key
-                            ? 'bg-blue-600 text-white border-blue-600'
-                            : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'
+                        onClick={() => toggleSize(size)}
+                        className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-all flex items-center gap-1.5 ${
+                          isSelected
+                            ? 'bg-blue-50 border-blue-400 text-blue-700'
+                            : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
                         }`}
                       >
-                        {p.label}
+                        {isSelected && <Check className="h-3 w-3" />}
+                        {size}
                       </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
-                <div className="grid grid-cols-7 gap-1.5 text-[10px] font-medium text-slate-400 uppercase tracking-wide px-1 mb-1">
-                  <span className="col-span-1">Size</span>
-                  <span>Qty</span>
-                  <span>Min</span>
-                  <span>Max</span>
-                  <span>Price</span>
-                  <span>Cost</span>
-                  <span />
+                    )
+                  })}
                 </div>
-                {sizes.map((s, i) => (
-                  <div key={i} className="grid grid-cols-7 gap-1.5 items-center">
-                    <Input
-                      value={s.size}
-                      onChange={(e) => updateSize(i, 'size', e.target.value)}
-                      placeholder="M"
-                      required
-                      className="rounded-lg text-xs h-8 col-span-1"
-                    />
-                    <Input
-                      type="number"
-                      min={0}
-                      value={s.quantity}
-                      onChange={(e) => updateSize(i, 'quantity', e.target.value)}
-                      className="rounded-lg text-xs h-8"
-                    />
-                    <Input
-                      type="number"
-                      min={0}
-                      value={s.minQuantity}
-                      onChange={(e) => updateSize(i, 'minQuantity', e.target.value)}
-                      className="rounded-lg text-xs h-8"
-                    />
-                    <Input
-                      type="number"
-                      min={0}
-                      value={s.maxQuantity}
-                      onChange={(e) => updateSize(i, 'maxQuantity', e.target.value)}
-                      className="rounded-lg text-xs h-8"
-                    />
-                    <Input
-                      type="number"
-                      min={0}
-                      step="0.01"
-                      value={s.price}
-                      onChange={(e) => updateSize(i, 'price', e.target.value)}
-                      required
-                      className="rounded-lg text-xs h-8"
-                    />
-                    <Input
-                      type="number"
-                      min={0}
-                      step="0.01"
-                      value={s.costPrice}
-                      onChange={(e) => updateSize(i, 'costPrice', e.target.value)}
-                      className="rounded-lg text-xs h-8"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => removeSize(i)}
-                      disabled={sizes.length === 1}
-                      className="h-8 w-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 disabled:opacity-30 transition-colors"
-                    >
-                      <X className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
-                ))}
-              </div>
+              )}
 
-              <button
-                type="button"
-                onClick={addSize}
-                className="mt-2 text-xs text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1"
-              >
-                <Plus className="h-3.5 w-3.5" />
-                Add size
-              </button>
+              {/* Custom size input (always visible for "Other") */}
+              {preset === 'other' && (
+                <div className="flex gap-2 mb-3">
+                  <Input
+                    value={customSize}
+                    onChange={(e) => setCustomSize(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault()
+                        addCustomSize()
+                      }
+                    }}
+                    placeholder="Enter custom size and press Enter"
+                    className="rounded-xl h-9 text-sm"
+                  />
+                  <Button type="button" variant="outline" onClick={addCustomSize} className="rounded-xl h-9">
+                    Add
+                  </Button>
+                </div>
+              )}
+
+              {/* Selected sizes with quantity */}
+              {selected.length === 0 ? (
+                <p className="text-xs text-slate-400 italic">
+                  No sizes selected — product will have no size variants.
+                </p>
+              ) : (
+                <div className="space-y-1.5 max-h-52 overflow-y-auto pr-1">
+                  <div className="grid grid-cols-[1fr_100px_32px] gap-2 text-[10px] font-medium text-slate-400 uppercase tracking-wide px-1">
+                    <span>Size</span>
+                    <span>Quantity</span>
+                    <span />
+                  </div>
+                  {selected.map((s) => (
+                    <div key={s.size} className="grid grid-cols-[1fr_100px_32px] gap-2 items-center">
+                      <div className="h-9 rounded-lg bg-slate-50 border border-slate-200 px-3 flex items-center text-sm font-medium text-slate-700">
+                        {s.size}
+                      </div>
+                      <Input
+                        type="number"
+                        min={0}
+                        value={s.quantity}
+                        onChange={(e) => updateSelectedQty(s.size, Number(e.target.value) || 0)}
+                        className="rounded-lg text-sm h-9"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeSelected(s.size)}
+                        className="h-9 w-9 flex items-center justify-center rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Show custom entries also under clothing/shoes presets */}
+              {preset !== 'other' && customSelected.length > 0 && (
+                <p className="text-xs text-slate-500 mt-2">
+                  Includes {customSelected.length} custom size(s) from this product.
+                </p>
+              )}
             </div>
 
             {/* Active toggle */}

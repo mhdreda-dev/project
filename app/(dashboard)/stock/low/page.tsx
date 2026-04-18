@@ -49,7 +49,7 @@ export default async function LowStockPage() {
                         </Badge>
                       </div>
                       <p className="text-xs text-muted-foreground">
-                        Min: {item.minQuantity} · Price: {formatCurrency(Number(item.price))}
+                        Threshold: {item.minQuantity}
                       </p>
                     </div>
                   </div>

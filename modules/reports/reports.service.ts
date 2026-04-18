@@ -45,11 +45,18 @@ export class ReportsService {
         _sum: { quantity: true },
         where: { type: MovementType.OUT, createdAt: dateFilter },
       }),
-      db.productSize.count({
-        where: { quantity: { lte: db.productSize.fields.minQuantity }, product: { isActive: true } },
-      }),
+      db.$queryRaw<[{ count: bigint }]>`
+        SELECT COUNT(*)::bigint AS count FROM (
+          SELECT p.id, COALESCE(SUM(ps.quantity), 0) AS qty, p."lowStockThreshold" AS threshold
+          FROM products p
+          LEFT JOIN product_sizes ps ON ps."productId" = p.id
+          WHERE p."isActive" = true
+          GROUP BY p.id
+        ) agg
+        WHERE agg.qty <= agg.threshold
+      `,
       db.$queryRaw<[{ total: string }]>`
-        SELECT COALESCE(SUM(ps.quantity * ps.price), 0)::text AS total
+        SELECT COALESCE(SUM(ps.quantity * p.price), 0)::text AS total
         FROM product_sizes ps
         JOIN products p ON p.id = ps."productId"
         WHERE p."isActive" = true
@@ -61,7 +68,7 @@ export class ReportsService {
       totalMovements: movements,
       totalStockIn: totalIn._sum.quantity ?? 0,
       totalStockOut: totalOut._sum.quantity ?? 0,
-      lowStockCount,
+      lowStockCount: Number(lowStockCount[0]?.count ?? 0),
       inventoryValue: parseFloat(inventoryValue[0]?.total ?? '0'),
     }
   }
@@ -137,16 +144,42 @@ export class ReportsService {
   }
 
   async getLowStockProducts() {
-    return db.productSize.findMany({
-      where: { quantity: { lte: db.productSize.fields.minQuantity }, product: { isActive: true } },
+    // Low stock = product whose total quantity across sizes <= product.lowStockThreshold
+    const products = await db.product.findMany({
+      where: { isActive: true },
       include: {
-        product: {
-          select: { id: true, name: true, sku: true, imageUrl: true, brand: { select: { name: true } } },
-        },
+        sizes: { select: { id: true, size: true, quantity: true } },
+        brand: { select: { name: true } },
       },
-      orderBy: { quantity: 'asc' },
-      take: 20,
+      take: 50,
     })
+
+    const flagged = products
+      .map((p) => {
+        const totalQty = p.sizes.reduce((s, sz) => s + sz.quantity, 0)
+        return { product: p, totalQty }
+      })
+      .filter(({ product, totalQty }) => totalQty <= product.lowStockThreshold)
+      .sort((a, b) => a.totalQty - b.totalQty)
+      .slice(0, 20)
+
+    // Return rows shaped like the previous API (one row per low-stock size) for UI compat
+    return flagged.flatMap(({ product, totalQty }) =>
+      product.sizes.map((sz) => ({
+        id: sz.id,
+        size: sz.size,
+        quantity: sz.quantity,
+        minQuantity: product.lowStockThreshold,
+        product: {
+          id: product.id,
+          name: product.name,
+          sku: product.sku,
+          imageUrl: product.imageUrl,
+          brand: product.brand,
+        },
+        totalQty,
+      })),
+    )
   }
 }
 

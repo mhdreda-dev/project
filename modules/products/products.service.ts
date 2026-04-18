@@ -4,8 +4,7 @@ import { CreateProductInput, UpdateProductInput, ProductQuery } from '@/lib/vali
 
 export class ProductsService {
   async list(query: ProductQuery) {
-    const { page, limit, search, category, isActive } = query
-    const brandId = (query as any).brandId as string | undefined
+    const { page, limit, search, category, isActive, brandId } = query
 
     const where = {
       ...(search && {
@@ -42,6 +41,7 @@ export class ProductsService {
       where: { id },
       include: {
         sizes: { orderBy: { size: 'asc' } },
+        brand: { select: { id: true, name: true } },
         movements: {
           take: 10,
           orderBy: { createdAt: 'desc' },
@@ -59,23 +59,23 @@ export class ProductsService {
       const product = await tx.product.create({
         data: {
           name: input.name,
-          description: input.description,
+          description: input.description ?? null,
           sku: input.sku.toUpperCase(),
-          category: input.category,
-          brandId: (input as any).brandId ?? null,
-          imageUrl: input.imageUrl,
+          category: input.category ?? null,
+          brandId: input.brandId ?? null,
+          imageUrl: input.imageUrl ?? null,
+          price: input.price,
+          costPrice: input.costPrice ?? null,
+          lowStockThreshold: input.lowStockThreshold ?? 5,
+          isActive: input.isActive ?? true,
           sizes: {
-            create: input.sizes.map((s) => ({
+            create: (input.sizes ?? []).map((s) => ({
               size: s.size,
-              quantity: s.quantity,
-              minQuantity: s.minQuantity,
-              maxQuantity: s.maxQuantity,
-              price: s.price,
-              costPrice: s.costPrice,
+              quantity: s.quantity ?? 0,
             })),
           },
         },
-        include: { sizes: true },
+        include: { sizes: true, brand: { select: { id: true, name: true } } },
       })
 
       return product
@@ -93,18 +93,50 @@ export class ProductsService {
       if (conflict) throw new Error(`SKU "${input.sku}" already in use`)
     }
 
-    return db.product.update({
-      where: { id },
-      data: {
-        ...(input.name && { name: input.name }),
-        ...(input.description !== undefined && { description: input.description }),
-        ...(input.sku && { sku: input.sku.toUpperCase() }),
-        ...(input.category !== undefined && { category: input.category }),
-        ...((input as any).brandId !== undefined && { brandId: (input as any).brandId ?? null }),
-        ...(input.imageUrl !== undefined && { imageUrl: input.imageUrl }),
-        ...(input.isActive !== undefined && { isActive: input.isActive }),
-      },
-      include: { sizes: true },
+    return db.$transaction(async (tx) => {
+      const updated = await tx.product.update({
+        where: { id },
+        data: {
+          ...(input.name !== undefined && { name: input.name }),
+          ...(input.description !== undefined && { description: input.description }),
+          ...(input.sku && { sku: input.sku.toUpperCase() }),
+          ...(input.category !== undefined && { category: input.category }),
+          ...(input.brandId !== undefined && { brandId: input.brandId ?? null }),
+          ...(input.imageUrl !== undefined && { imageUrl: input.imageUrl }),
+          ...(input.price !== undefined && { price: input.price }),
+          ...(input.costPrice !== undefined && { costPrice: input.costPrice }),
+          ...(input.lowStockThreshold !== undefined && { lowStockThreshold: input.lowStockThreshold }),
+          ...(input.isActive !== undefined && { isActive: input.isActive }),
+        },
+      })
+
+      if (input.sizes) {
+        const existing = await tx.productSize.findMany({ where: { productId: id } })
+        const incomingSizes = input.sizes.map((s) => s.size)
+
+        // Delete sizes no longer present (only if they have no stock movements)
+        const toDelete = existing.filter((e) => !incomingSizes.includes(e.size))
+        for (const s of toDelete) {
+          const hasMovements = await tx.stockMovement.count({ where: { productSizeId: s.id } })
+          if (hasMovements === 0) {
+            await tx.productSize.delete({ where: { id: s.id } })
+          }
+        }
+
+        // Upsert each incoming size
+        for (const s of input.sizes) {
+          await tx.productSize.upsert({
+            where: { productId_size: { productId: id, size: s.size } },
+            update: { quantity: s.quantity ?? 0 },
+            create: { productId: id, size: s.size, quantity: s.quantity ?? 0 },
+          })
+        }
+      }
+
+      return tx.product.findUnique({
+        where: { id },
+        include: { sizes: true, brand: { select: { id: true, name: true } } },
+      })
     })
   }
 
@@ -125,17 +157,11 @@ export class ProductsService {
   }
 
   async getDashboardStats() {
-    const [totalProducts, totalSizes, lowStock, recentMovements] = await Promise.all([
+    const [totalProducts, totalSizes, recentMovements, lowStockCount] = await Promise.all([
       db.product.count({ where: { isActive: true } }),
       db.productSize.aggregate({
         _sum: { quantity: true },
         where: { product: { isActive: true } },
-      }),
-      db.productSize.count({
-        where: {
-          quantity: { lte: db.productSize.fields.minQuantity },
-          product: { isActive: true },
-        },
       }),
       db.stockMovement.count({
         where: {
@@ -144,10 +170,21 @@ export class ProductsService {
           },
         },
       }),
+      // low-stock: product whose total qty across sizes <= product.lowStockThreshold
+      db.$queryRaw<[{ count: bigint }]>`
+        SELECT COUNT(*)::bigint AS count FROM (
+          SELECT p.id, COALESCE(SUM(ps.quantity), 0) AS qty, p."lowStockThreshold" AS threshold
+          FROM products p
+          LEFT JOIN product_sizes ps ON ps."productId" = p.id
+          WHERE p."isActive" = true
+          GROUP BY p.id
+        ) agg
+        WHERE agg.qty <= agg.threshold
+      `,
     ])
 
-    const totalValue = await db.$queryRaw<[{ total: number }]>`
-      SELECT COALESCE(SUM(ps.quantity * ps.price), 0) AS total
+    const totalValue = await db.$queryRaw<[{ total: string }]>`
+      SELECT COALESCE(SUM(ps.quantity * p.price), 0)::text AS total
       FROM product_sizes ps
       JOIN products p ON p.id = ps."productId"
       WHERE p."isActive" = true
@@ -156,9 +193,9 @@ export class ProductsService {
     return {
       totalProducts,
       totalStock: totalSizes._sum.quantity ?? 0,
-      lowStockCount: lowStock,
+      lowStockCount: Number(lowStockCount[0]?.count ?? 0),
       recentMovements,
-      totalInventoryValue: Number(totalValue[0]?.total ?? 0),
+      totalInventoryValue: parseFloat(totalValue[0]?.total ?? '0'),
     }
   }
 }
