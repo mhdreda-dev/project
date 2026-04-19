@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import Image from 'next/image'
+import { SafeImage } from '@/components/ui/safe-image'
 import { Upload, X, ImageIcon, AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -39,13 +39,22 @@ export function ImageUpload({ value, onChange, disabled, className }: ImageUploa
   const handleFile = async (file: File) => {
     if (!file) return
 
-    const allowed = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
+    const allowed = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif']
     if (!allowed.includes(file.type)) {
-      toast({ title: 'Invalid file type', description: 'Use JPG, PNG or WebP', variant: 'destructive' })
+      toast({
+        title: 'Unsupported file type',
+        description: `"${file.type || 'unknown'}" is not supported. Use JPG, PNG, WebP or GIF. (iPhone HEIC photos need to be converted first — try re-saving from Photos as JPEG.)`,
+        variant: 'destructive',
+      })
       return
     }
-    if (file.size > 5 * 1024 * 1024) {
-      toast({ title: 'File too large', description: 'Maximum size is 5 MB', variant: 'destructive' })
+    if (file.size > 10 * 1024 * 1024) {
+      const mb = (file.size / 1024 / 1024).toFixed(1)
+      toast({
+        title: 'File too large',
+        description: `File is ${mb} MB. Maximum size is 10 MB.`,
+        variant: 'destructive',
+      })
       return
     }
 
@@ -71,7 +80,7 @@ export function ImageUpload({ value, onChange, disabled, className }: ImageUploa
         return
       }
 
-      if (!res.ok) throw new Error(data.error ?? 'Upload failed')
+      if (!res.ok) throw new Error(data.error ?? data.message ?? `Upload failed (HTTP ${res.status})`)
       onChange(data.url)
       setPreview(data.url)
     } catch (e) {
@@ -100,7 +109,7 @@ export function ImageUpload({ value, onChange, disabled, className }: ImageUploa
       <input
         ref={inputRef}
         type="file"
-        accept="image/jpeg,image/jpg,image/png,image/webp"
+        accept="image/jpeg,image/jpg,image/png,image/webp,image/gif"
         className="hidden"
         disabled={uploadDisabled}
         onChange={(e) => {
@@ -111,7 +120,7 @@ export function ImageUpload({ value, onChange, disabled, className }: ImageUploa
 
       {preview ? (
         <div className="relative w-full h-48 rounded-xl overflow-hidden border border-slate-200 group">
-          <Image src={preview} alt="Product" fill className="object-cover" unoptimized={preview.startsWith('blob:')} />
+          <SafeImage src={preview} alt="Product" fill sizes="(max-width: 640px) 100vw, 400px" className="object-cover" />
           <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
             {configured !== false && (
               <Button
@@ -167,7 +176,7 @@ export function ImageUpload({ value, onChange, disabled, className }: ImageUploa
             <>
               <ImageIcon className="h-8 w-8" />
               <span className="text-sm font-medium">Click to upload image</span>
-              <span className="text-xs">JPG, PNG, WebP — max 5 MB</span>
+              <span className="text-xs">JPG, PNG, WebP, GIF — max 10 MB</span>
             </>
           )}
         </button>

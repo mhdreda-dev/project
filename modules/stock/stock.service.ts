@@ -128,19 +128,24 @@ export class StockService {
     const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000)
 
     const movements = await db.$queryRaw<
-      Array<{ date: string; in_qty: number; out_qty: number }>
+      Array<{ date: string; in_qty: bigint | number; out_qty: bigint | number }>
     >`
       SELECT
         DATE("createdAt")::text AS date,
-        COALESCE(SUM(CASE WHEN type = 'IN' THEN quantity ELSE 0 END), 0) AS in_qty,
-        COALESCE(SUM(CASE WHEN type = 'OUT' THEN quantity ELSE 0 END), 0) AS out_qty
+        COALESCE(SUM(CASE WHEN type = 'IN' THEN quantity ELSE 0 END), 0)::int AS in_qty,
+        COALESCE(SUM(CASE WHEN type = 'OUT' THEN quantity ELSE 0 END), 0)::int AS out_qty
       FROM stock_movements
       WHERE "createdAt" >= ${since}
       GROUP BY DATE("createdAt")
       ORDER BY date ASC
     `
 
-    return movements
+    // Defensive: normalize any BigInt values to number so JSON.stringify doesn't throw.
+    return movements.map((m) => ({
+      date: m.date,
+      in_qty: Number(m.in_qty),
+      out_qty: Number(m.out_qty),
+    }))
   }
 }
 

@@ -3,8 +3,8 @@ import { put } from '@vercel/blob'
 import { apiError } from '@/lib/utils'
 import { NextRequest, NextResponse } from 'next/server'
 
-const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
-const MAX_SIZE = 5 * 1024 * 1024 // 5 MB
+const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif']
+const MAX_SIZE = 10 * 1024 * 1024 // 10 MB
 
 export async function GET() {
   // Allow the UI to probe whether uploads are configured
@@ -29,13 +29,26 @@ export async function POST(req: NextRequest) {
 
     const form = await req.formData()
     const file = form.get('file') as File | null
-    if (!file) return apiError('No file provided', 400)
+    if (!file) {
+      console.warn('[upload] rejected: no file in form data')
+      return apiError('No file provided', 400)
+    }
 
-    if (!ALLOWED_TYPES.includes(file.type))
-      return apiError('Invalid file type. Allowed: jpg, png, webp', 400)
+    const sizeMb = (file.size / 1024 / 1024).toFixed(2)
+    console.log(`[upload] incoming: name="${file.name}" type="${file.type}" size=${sizeMb}MB`)
 
-    if (file.size > MAX_SIZE)
-      return apiError('File too large. Maximum size: 5 MB', 400)
+    if (!ALLOWED_TYPES.includes(file.type)) {
+      console.warn(`[upload] rejected: unsupported type "${file.type}" for "${file.name}"`)
+      return apiError(
+        `Unsupported file type "${file.type || 'unknown'}". Allowed: JPG, PNG, WebP, GIF.`,
+        400,
+      )
+    }
+
+    if (file.size > MAX_SIZE) {
+      console.warn(`[upload] rejected: file too large (${sizeMb}MB > 10MB) for "${file.name}"`)
+      return apiError(`File too large (${sizeMb} MB). Maximum size is 10 MB.`, 400)
+    }
 
     const ext = file.name.split('.').pop()
     const filename = `products/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`

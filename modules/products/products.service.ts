@@ -2,6 +2,23 @@ import { db } from '@/lib/db'
 import { paginate, paginationMeta } from '@/lib/utils'
 import { CreateProductInput, UpdateProductInput, ProductQuery } from '@/lib/validations/product'
 
+// Convert Prisma Decimal fields to plain numbers so Server Components can
+// safely pass results to Client Components (Decimal objects aren't serializable).
+function serializeProduct<T extends Record<string, any> | null | undefined>(p: T): T {
+  if (!p) return p
+  const out: any = { ...p }
+  if (out.price != null) out.price = Number(out.price)
+  if (out.costPrice != null) out.costPrice = Number(out.costPrice)
+  if (Array.isArray(out.sizes)) {
+    out.sizes = out.sizes.map((s: any) => ({
+      ...s,
+      ...(s.price != null ? { price: Number(s.price) } : {}),
+      ...(s.costPrice != null ? { costPrice: Number(s.costPrice) } : {}),
+    }))
+  }
+  return out as T
+}
+
 export class ProductsService {
   async list(query: ProductQuery) {
     const { page, limit, search, category, isActive, brandId } = query
@@ -33,11 +50,11 @@ export class ProductsService {
       db.product.count({ where }),
     ])
 
-    return { products, meta: paginationMeta(total, page, limit) }
+    return { products: products.map(serializeProduct), meta: paginationMeta(total, page, limit) }
   }
 
   async findById(id: string) {
-    return db.product.findUnique({
+    const p = await db.product.findUnique({
       where: { id },
       include: {
         sizes: { orderBy: { size: 'asc' } },
@@ -49,6 +66,7 @@ export class ProductsService {
         },
       },
     })
+    return serializeProduct(p)
   }
 
   async create(input: CreateProductInput) {
@@ -78,7 +96,7 @@ export class ProductsService {
         include: { sizes: true, brand: { select: { id: true, name: true } } },
       })
 
-      return product
+      return serializeProduct(product)
     })
   }
 
@@ -133,10 +151,11 @@ export class ProductsService {
         }
       }
 
-      return tx.product.findUnique({
+      const result = await tx.product.findUnique({
         where: { id },
         include: { sizes: true, brand: { select: { id: true, name: true } } },
       })
+      return serializeProduct(result)
     })
   }
 

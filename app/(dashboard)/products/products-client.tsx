@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useCallback } from 'react'
-import Image from 'next/image'
+import { SafeImage } from '@/components/ui/safe-image'
 import { useRouter } from 'next/navigation'
 import {
   Plus, Search, Package, Pencil, Trash2, X, ChevronLeft, ChevronRight,
@@ -351,11 +351,13 @@ export function ProductsClient({ initialProducts, meta: initialMeta, brands, isA
                 className="bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all overflow-hidden group"
               >
                 <div className="relative h-40 bg-slate-50 flex items-center justify-center overflow-hidden">
-                  {product.imageUrl ? (
-                    <Image src={product.imageUrl} alt={product.name} fill className="object-cover" />
-                  ) : (
-                    <Package className="h-10 w-10 text-slate-200" />
-                  )}
+                  <SafeImage
+                    src={product.imageUrl}
+                    alt={product.name}
+                    fill
+                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                    className="object-cover"
+                  />
                   {!product.isActive && (
                     <div className="absolute inset-0 bg-slate-900/40 flex items-center justify-center">
                       <Badge variant="secondary" className="text-xs">Inactive</Badge>

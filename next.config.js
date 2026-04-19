@@ -7,6 +7,9 @@ const nextConfig = {
     remotePatterns: [
       { protocol: 'https', hostname: 'avatars.githubusercontent.com' },
       { protocol: 'https', hostname: 'lh3.googleusercontent.com' },
+      // Vercel Blob public buckets — format: <storeId>.public.blob.vercel-storage.com
+      { protocol: 'https', hostname: '*.public.blob.vercel-storage.com' },
+      { protocol: 'https', hostname: '*.blob.vercel-storage.com' },
     ],
   },
   async headers() {
