@@ -18,10 +18,13 @@ export function generateSKU(name: string): string {
 }
 
 export function formatCurrency(amount: number | string): string {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-  }).format(Number(amount))
+  const value = Number(amount)
+  const hasFraction = !Number.isInteger(value)
+
+  return `${new Intl.NumberFormat('en-US', {
+    minimumFractionDigits: hasFraction ? 2 : 0,
+    maximumFractionDigits: 2,
+  }).format(value)} MAD`
 }
 
 export function formatDate(date: Date | string): string {

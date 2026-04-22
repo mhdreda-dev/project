@@ -17,6 +17,7 @@ import { StatCard } from '@/components/ui/stat-card'
 import { PageHeader } from '@/components/ui/page-header'
 import { Badge } from '@/components/ui/badge'
 import { formatCurrency } from '@/lib/utils'
+import { useI18n } from '@/components/i18n-provider'
 import {
   AreaChart,
   Area,
@@ -32,17 +33,18 @@ import {
 
 type Period = 'day' | 'week' | 'month' | 'year'
 
-const PERIODS: { value: Period; label: string }[] = [
-  { value: 'day', label: 'Today' },
-  { value: 'week', label: 'This Week' },
-  { value: 'month', label: 'This Month' },
-  { value: 'year', label: 'This Year' },
-]
-
 export function ReportsClient() {
   const [period, setPeriod] = useState<Period>('month')
   const [data, setData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const { t } = useI18n()
+
+  const periods: { value: Period; label: string }[] = [
+    { value: 'day', label: t('reports.periods.day') },
+    { value: 'week', label: t('reports.periods.week') },
+    { value: 'month', label: t('reports.periods.month') },
+    { value: 'year', label: t('reports.periods.year') },
+  ]
 
   const fetchReport = useCallback(async () => {
     setLoading(true)
@@ -68,13 +70,13 @@ export function ReportsClient() {
   return (
     <div>
       <PageHeader
-        title="Reports"
-        description="Stock performance and inventory analytics"
+        title={t('reports.title')}
+        description={t('reports.description')}
       />
 
       {/* Period selector */}
       <div className="flex gap-2 mb-6 bg-white border border-slate-100 rounded-xl p-1 w-fit shadow-sm">
-        {PERIODS.map((p) => (
+        {periods.map((p) => (
           <button
             key={p.value}
             onClick={() => setPeriod(p.value)}
@@ -103,30 +105,30 @@ export function ReportsClient() {
           {/* Summary stats */}
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 mb-6">
             <StatCard
-              title="Stock In"
+              title={t('reports.stats.stockIn')}
               value={(summary?.totalStockIn ?? 0).toLocaleString()}
-              description="Units received"
+              description={t('reports.stats.unitsReceived')}
               icon={ArrowUpCircle}
               color="green"
             />
             <StatCard
-              title="Stock Out"
+              title={t('reports.stats.stockOut')}
               value={(summary?.totalStockOut ?? 0).toLocaleString()}
-              description="Units dispatched"
+              description={t('reports.stats.unitsDispatched')}
               icon={ArrowDownCircle}
               color="blue"
             />
             <StatCard
-              title="Inventory Value"
+              title={t('reports.stats.inventoryValueMad')}
               value={formatCurrency(summary?.inventoryValue ?? 0)}
-              description="Total stock value"
+              description={t('reports.stats.totalStockValue')}
               icon={DollarSign}
               color="purple"
             />
             <StatCard
-              title="Low Stock Items"
+              title={t('reports.stats.lowStockItems')}
               value={summary?.lowStockCount ?? 0}
-              description="Need restocking"
+              description={t('reports.stats.needRestocking')}
               icon={AlertTriangle}
               color="red"
             />
@@ -135,7 +137,7 @@ export function ReportsClient() {
           {/* Timeline chart */}
           {timeline.length > 0 && (
             <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-sm mb-6">
-              <h3 className="font-semibold text-slate-900 mb-4">Stock Movement Timeline</h3>
+              <h3 className="font-semibold text-slate-900 mb-4">{t('reports.timeline.title')}</h3>
               <ResponsiveContainer width="100%" height={260}>
                 <AreaChart data={timeline} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
                   <defs>
@@ -155,8 +157,8 @@ export function ReportsClient() {
                     contentStyle={{ borderRadius: 12, border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}
                   />
                   <Legend />
-                  <Area type="monotone" dataKey="in" name="Stock In" stroke="#10b981" fill="url(#colorIn)" strokeWidth={2} />
-                  <Area type="monotone" dataKey="out" name="Stock Out" stroke="#3b82f6" fill="url(#colorOut)" strokeWidth={2} />
+                  <Area type="monotone" dataKey="in" name={t('reports.stats.stockIn')} stroke="#10b981" fill="url(#colorIn)" strokeWidth={2} />
+                  <Area type="monotone" dataKey="out" name={t('reports.stats.stockOut')} stroke="#3b82f6" fill="url(#colorOut)" strokeWidth={2} />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
@@ -165,9 +167,9 @@ export function ReportsClient() {
           <div className="grid gap-6 lg:grid-cols-2 mb-6">
             {/* Top products */}
             <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-sm">
-              <h3 className="font-semibold text-slate-900 mb-4">Top Products by Movement</h3>
+              <h3 className="font-semibold text-slate-900 mb-4">{t('reports.topProducts.title')}</h3>
               {topProducts.length === 0 ? (
-                <p className="text-sm text-slate-400 text-center py-8">No data for this period</p>
+                <p className="text-sm text-slate-400 text-center py-8">{t('reports.emptyPeriod')}</p>
               ) : (
                 <div className="space-y-3">
                   {topProducts.slice(0, 8).map((item: any, i: number) => (
@@ -175,10 +177,10 @@ export function ReportsClient() {
                       <span className="text-xs font-bold text-slate-400 w-5 text-center">{i + 1}</span>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-slate-800 truncate">{item.product?.name ?? '—'}</p>
-                        <p className="text-xs text-slate-400">{item.product?.brand?.name ?? 'No brand'} · {item.product?.sku}</p>
+                        <p className="text-xs text-slate-400">{item.product?.brand?.name ?? t('common.labels.noBrand')} · {item.product?.sku}</p>
                       </div>
                       <Badge variant="secondary" className="text-xs tabular-nums shrink-0">
-                        {item.totalOut} units
+                        {t('common.misc.units', { count: item.totalOut })}
                       </Badge>
                     </div>
                   ))}
@@ -188,9 +190,9 @@ export function ReportsClient() {
 
             {/* Top brands */}
             <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-sm">
-              <h3 className="font-semibold text-slate-900 mb-4">Top Brands by Volume</h3>
+              <h3 className="font-semibold text-slate-900 mb-4">{t('reports.topBrands.title')}</h3>
               {topBrands.length === 0 ? (
-                <p className="text-sm text-slate-400 text-center py-8">No data for this period</p>
+                <p className="text-sm text-slate-400 text-center py-8">{t('reports.emptyPeriod')}</p>
               ) : (
                 <div className="space-y-3">
                   {topBrands.map((brand: any, i: number) => {
@@ -200,7 +202,7 @@ export function ReportsClient() {
                       <div key={i} className="space-y-1">
                         <div className="flex items-center justify-between text-sm">
                           <span className="font-medium text-slate-800">{brand.name}</span>
-                          <span className="text-slate-500 tabular-nums">{brand.total} units</span>
+                          <span className="text-slate-500 tabular-nums">{t('common.misc.units', { count: brand.total })}</span>
                         </div>
                         <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
                           <div
@@ -221,18 +223,18 @@ export function ReportsClient() {
             <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-sm">
               <div className="flex items-center gap-2 mb-4">
                 <AlertTriangle className="h-4 w-4 text-amber-500" />
-                <h3 className="font-semibold text-slate-900">Low Stock Alerts</h3>
+                <h3 className="font-semibold text-slate-900">{t('reports.lowStock.title')}</h3>
                 <Badge variant="warning" className="text-xs">{lowStock.length}</Badge>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-slate-100">
-                      <th className="text-left py-2 px-3 font-medium text-slate-500">Product</th>
-                      <th className="text-left py-2 px-3 font-medium text-slate-500">Brand</th>
-                      <th className="text-left py-2 px-3 font-medium text-slate-500">Size</th>
-                      <th className="text-right py-2 px-3 font-medium text-slate-500">Stock</th>
-                      <th className="text-right py-2 px-3 font-medium text-slate-500">Min</th>
+                      <th className="text-left py-2 px-3 font-medium text-slate-500">{t('reports.lowStock.product')}</th>
+                      <th className="text-left py-2 px-3 font-medium text-slate-500">{t('reports.lowStock.brand')}</th>
+                      <th className="text-left py-2 px-3 font-medium text-slate-500">{t('reports.lowStock.size')}</th>
+                      <th className="text-right py-2 px-3 font-medium text-slate-500">{t('reports.lowStock.stock')}</th>
+                      <th className="text-right py-2 px-3 font-medium text-slate-500">{t('reports.lowStock.min')}</th>
                     </tr>
                   </thead>
                   <tbody>

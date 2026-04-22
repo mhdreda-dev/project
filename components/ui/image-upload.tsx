@@ -6,6 +6,7 @@ import { Upload, X, ImageIcon, AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { useToast } from '@/hooks/use-toast'
+import { useI18n } from '@/components/i18n-provider'
 
 interface ImageUploadProps {
   value?: string
@@ -20,6 +21,7 @@ export function ImageUpload({ value, onChange, disabled, className }: ImageUploa
   const [configured, setConfigured] = useState<boolean | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const { toast } = useToast()
+  const { t } = useI18n()
 
   // Sync preview when value changes externally (edit mode)
   useEffect(() => {
@@ -42,8 +44,8 @@ export function ImageUpload({ value, onChange, disabled, className }: ImageUploa
     const allowed = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif']
     if (!allowed.includes(file.type)) {
       toast({
-        title: 'Unsupported file type',
-        description: `"${file.type || 'unknown'}" is not supported. Use JPG, PNG, WebP or GIF. (iPhone HEIC photos need to be converted first — try re-saving from Photos as JPEG.)`,
+        title: t('imageUpload.unsupportedTitle'),
+        description: t('imageUpload.unsupportedDescription', { type: file.type || 'unknown' }),
         variant: 'destructive',
       })
       return
@@ -51,8 +53,8 @@ export function ImageUpload({ value, onChange, disabled, className }: ImageUploa
     if (file.size > 10 * 1024 * 1024) {
       const mb = (file.size / 1024 / 1024).toFixed(1)
       toast({
-        title: 'File too large',
-        description: `File is ${mb} MB. Maximum size is 10 MB.`,
+        title: t('imageUpload.fileTooLargeTitle'),
+        description: t('imageUpload.fileTooLargeDescription', { size: mb }),
         variant: 'destructive',
       })
       return
@@ -71,8 +73,8 @@ export function ImageUpload({ value, onChange, disabled, className }: ImageUploa
       if (res.status === 503 || data?.code === 'UPLOAD_NOT_CONFIGURED') {
         setConfigured(false)
         toast({
-          title: 'Image upload unavailable',
-          description: 'The server is not configured for image uploads. The product will be saved without an image.',
+          title: t('imageUpload.unavailableTitle'),
+          description: t('imageUpload.unavailableDescription'),
           variant: 'destructive',
         })
         setPreview(value)
@@ -80,13 +82,13 @@ export function ImageUpload({ value, onChange, disabled, className }: ImageUploa
         return
       }
 
-      if (!res.ok) throw new Error(data.error ?? data.message ?? `Upload failed (HTTP ${res.status})`)
+      if (!res.ok) throw new Error(data.error ?? data.message ?? t('imageUpload.uploadFailedStatus', { status: res.status }))
       onChange(data.url)
       setPreview(data.url)
     } catch (e) {
       toast({
-        title: 'Upload failed',
-        description: e instanceof Error ? e.message : 'Please try again',
+        title: t('imageUpload.uploadFailedTitle'),
+        description: e instanceof Error ? e.message : t('imageUpload.tryAgain'),
         variant: 'destructive',
       })
       setPreview(value)
@@ -131,7 +133,7 @@ export function ImageUpload({ value, onChange, disabled, className }: ImageUploa
                 onClick={() => inputRef.current?.click()}
               >
                 <Upload className="h-4 w-4 mr-1" />
-                Replace
+                {t('common.actions.replace')}
               </Button>
             )}
             <Button
@@ -167,16 +169,16 @@ export function ImageUpload({ value, onChange, disabled, className }: ImageUploa
           ) : configured === false ? (
             <>
               <AlertCircle className="h-7 w-7 text-amber-500" />
-              <span className="text-sm font-medium text-slate-600">Image upload unavailable</span>
+              <span className="text-sm font-medium text-slate-600">{t('imageUpload.unavailableInlineTitle')}</span>
               <span className="text-xs text-slate-400 text-center px-4">
-                Server not configured. You can still save the product without an image.
+                {t('imageUpload.unavailableInlineDescription')}
               </span>
             </>
           ) : (
             <>
               <ImageIcon className="h-8 w-8" />
-              <span className="text-sm font-medium">Click to upload image</span>
-              <span className="text-xs">JPG, PNG, WebP, GIF — max 10 MB</span>
+              <span className="text-sm font-medium">{t('imageUpload.clickToUpload')}</span>
+              <span className="text-xs">{t('imageUpload.formats')}</span>
             </>
           )}
         </button>
@@ -185,7 +187,7 @@ export function ImageUpload({ value, onChange, disabled, className }: ImageUploa
       {configured === false && preview && (
         <p className="text-xs text-amber-600 flex items-center gap-1.5">
           <AlertCircle className="h-3.5 w-3.5" />
-          Image upload is not configured. You can remove the image but not replace it.
+          {t('imageUpload.configuredNote')}
         </p>
       )}
     </div>

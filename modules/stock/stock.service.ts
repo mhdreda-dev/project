@@ -124,21 +124,31 @@ export class StockService {
       )
   }
 
-  async getMovementChart(days = 30) {
+  async getMovementChart(days = 30, productId?: string) {
     const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000)
 
-    const movements = await db.$queryRaw<
-      Array<{ date: string; in_qty: bigint | number; out_qty: bigint | number }>
-    >`
-      SELECT
-        DATE("createdAt")::text AS date,
-        COALESCE(SUM(CASE WHEN type = 'IN' THEN quantity ELSE 0 END), 0)::int AS in_qty,
-        COALESCE(SUM(CASE WHEN type = 'OUT' THEN quantity ELSE 0 END), 0)::int AS out_qty
-      FROM stock_movements
-      WHERE "createdAt" >= ${since}
-      GROUP BY DATE("createdAt")
-      ORDER BY date ASC
-    `
+    // Two branches so we don't have to conditionally inject SQL. Same shape.
+    const movements = productId
+      ? await db.$queryRaw<Array<{ date: string; in_qty: bigint | number; out_qty: bigint | number }>>`
+          SELECT
+            DATE("createdAt")::text AS date,
+            COALESCE(SUM(CASE WHEN type = 'IN' THEN quantity ELSE 0 END), 0)::int AS in_qty,
+            COALESCE(SUM(CASE WHEN type = 'OUT' THEN quantity ELSE 0 END), 0)::int AS out_qty
+          FROM stock_movements
+          WHERE "createdAt" >= ${since} AND "productId" = ${productId}
+          GROUP BY DATE("createdAt")
+          ORDER BY date ASC
+        `
+      : await db.$queryRaw<Array<{ date: string; in_qty: bigint | number; out_qty: bigint | number }>>`
+          SELECT
+            DATE("createdAt")::text AS date,
+            COALESCE(SUM(CASE WHEN type = 'IN' THEN quantity ELSE 0 END), 0)::int AS in_qty,
+            COALESCE(SUM(CASE WHEN type = 'OUT' THEN quantity ELSE 0 END), 0)::int AS out_qty
+          FROM stock_movements
+          WHERE "createdAt" >= ${since}
+          GROUP BY DATE("createdAt")
+          ORDER BY date ASC
+        `
 
     // Defensive: normalize any BigInt values to number so JSON.stringify doesn't throw.
     return movements.map((m) => ({
@@ -146,6 +156,38 @@ export class StockService {
       in_qty: Number(m.in_qty),
       out_qty: Number(m.out_qty),
     }))
+  }
+
+  /**
+   * Unpaginated movement list for exports. Hard-capped at 10k rows to
+   * keep memory bounded — callers should narrow with filters if possible.
+   */
+  async listAll(filters: {
+    productId?: string
+    type?: MovementType
+    from?: string
+    to?: string
+  }) {
+    const where = {
+      ...(filters.productId && { productId: filters.productId }),
+      ...(filters.type && { type: filters.type }),
+      ...((filters.from || filters.to) && {
+        createdAt: {
+          ...(filters.from && { gte: new Date(filters.from) }),
+          ...(filters.to && { lte: new Date(filters.to) }),
+        },
+      }),
+    }
+    return db.stockMovement.findMany({
+      where,
+      include: {
+        product: { select: { name: true, sku: true } },
+        productSize: { select: { size: true } },
+        user: { select: { name: true, email: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 10_000,
+    })
   }
 }
 

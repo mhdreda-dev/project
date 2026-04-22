@@ -2,6 +2,7 @@ import { auth } from '@/lib/auth'
 import { productsService } from '@/modules/products/products.service'
 import { brandsService } from '@/modules/brands/brands.service'
 import { ProductsClient } from './products-client'
+import { getServerI18n } from '@/lib/i18n/server'
 
 export const dynamic = 'force-dynamic'
 
@@ -13,6 +14,7 @@ export default async function ProductsPage({
   searchParams: { page?: string; search?: string; category?: string }
 }) {
   const session = await auth()
+  const { t } = getServerI18n()
   const page = Number(searchParams.page ?? 1)
   const search = searchParams.search
   const category = searchParams.category
@@ -41,9 +43,9 @@ export default async function ProductsPage({
   if (loadError) {
     return (
       <div className="p-6">
-        <h1 className="text-2xl font-semibold text-slate-900 mb-2">Products unavailable</h1>
+        <h1 className="text-2xl font-semibold text-slate-900 mb-2">{t('products.unavailableTitle')}</h1>
         <p className="text-sm text-slate-600">
-          Could not load products. The database may be missing the latest migration.
+          {t('products.unavailableDescription')}
         </p>
         <pre className="mt-3 text-xs text-slate-500 bg-slate-50 border border-slate-200 rounded-lg p-3 overflow-auto">
           {loadError}

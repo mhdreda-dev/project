@@ -12,6 +12,7 @@ import { PageHeader } from '@/components/ui/page-header'
 import { EmptyState } from '@/components/ui/empty-state'
 import { useToast } from '@/hooks/use-toast'
 import { useRouter } from 'next/navigation'
+import { useI18n } from '@/components/i18n-provider'
 
 type Brand = {
   id: string
@@ -38,6 +39,7 @@ export function BrandsClient({ initialBrands, isAdmin }: BrandsClientProps) {
   const [form, setForm] = useState({ name: '', description: '', logoUrl: '', isActive: true })
   const { toast } = useToast()
   const router = useRouter()
+  const { t } = useI18n()
 
   const filtered = brands.filter(
     (b) =>
@@ -77,41 +79,41 @@ export function BrandsClient({ initialBrands, isAdmin }: BrandsClientProps) {
       const json = await res.json()
       if (!res.ok) throw new Error(json.error)
 
-      toast({ title: editing ? 'Brand updated' : 'Brand created' })
+      toast({ title: editing ? t('brands.toast.updated') : t('brands.toast.created') })
       setModalOpen(false)
       router.refresh()
       const refreshed = await fetch('/api/brands?limit=100').then((r) => r.json())
       if (refreshed.data?.brands) setBrands(refreshed.data.brands)
     } catch (e) {
-      toast({ title: 'Error', description: e instanceof Error ? e.message : 'Something went wrong', variant: 'destructive' })
+      toast({ title: t('common.errorTitle'), description: e instanceof Error ? e.message : t('brands.toast.error'), variant: 'destructive' })
     } finally {
       setLoading(false)
     }
   }
 
   async function handleDelete(brand: Brand) {
-    if (!confirm(`Delete brand "${brand.name}"? This cannot be undone.`)) return
+    if (!confirm(t('brands.confirmDelete', { name: brand.name }))) return
     try {
       const res = await fetch(`/api/brands/${brand.id}`, { method: 'DELETE' })
       const json = await res.json()
       if (!res.ok) throw new Error(json.error)
       setBrands((prev) => prev.filter((b) => b.id !== brand.id))
-      toast({ title: 'Brand deleted' })
+      toast({ title: t('brands.toast.deleted') })
     } catch (e) {
-      toast({ title: 'Error', description: e instanceof Error ? e.message : 'Cannot delete', variant: 'destructive' })
+      toast({ title: t('common.errorTitle'), description: e instanceof Error ? e.message : t('products.toast.cannotDelete'), variant: 'destructive' })
     }
   }
 
   return (
     <div>
       <PageHeader
-        title="Brands"
-        description={`${brands.length} brands in your catalog`}
+        title={t('brands.title')}
+        description={t('brands.description', { count: brands.length })}
         action={
           isAdmin && (
             <Button onClick={openCreate} className="gap-2 rounded-xl">
               <Plus className="h-4 w-4" />
-              Add Brand
+              {t('common.actions.addBrand')}
             </Button>
           )
         }
@@ -121,7 +123,7 @@ export function BrandsClient({ initialBrands, isAdmin }: BrandsClientProps) {
       <div className="relative mb-6 max-w-sm">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
         <Input
-          placeholder="Search brands..."
+          placeholder={t('common.placeholders.searchBrands')}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="pl-9 rounded-xl border-slate-200"
@@ -132,9 +134,9 @@ export function BrandsClient({ initialBrands, isAdmin }: BrandsClientProps) {
       {filtered.length === 0 ? (
         <EmptyState
           icon={Tag}
-          title="No brands found"
-          description={search ? 'Try a different search term' : 'Create your first brand to get started'}
-          action={isAdmin && <Button onClick={openCreate} className="gap-2"><Plus className="h-4 w-4" />Add Brand</Button>}
+          title={t('brands.empty.title')}
+          description={search ? t('brands.empty.filtered') : t('brands.empty.initial')}
+          action={isAdmin && <Button onClick={openCreate} className="gap-2"><Plus className="h-4 w-4" />{t('common.actions.addBrand')}</Button>}
         />
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -181,13 +183,13 @@ export function BrandsClient({ initialBrands, isAdmin }: BrandsClientProps) {
               <div className="flex items-center justify-between mt-3 pt-3 border-t border-slate-50">
                 <div className="flex items-center gap-1.5 text-xs text-slate-500">
                   <Package className="h-3.5 w-3.5" />
-                  <span>{brand._count.products} products</span>
+                  <span>{t('brands.productsCount', { count: brand._count.products })}</span>
                 </div>
                 <Badge
                   variant={brand.isActive ? 'success' : 'secondary'}
                   className="text-[10px] px-1.5 py-0"
                 >
-                  {brand.isActive ? 'Active' : 'Inactive'}
+                  {brand.isActive ? t('common.status.active') : t('common.status.inactive')}
                 </Badge>
               </div>
             </div>
@@ -199,46 +201,46 @@ export function BrandsClient({ initialBrands, isAdmin }: BrandsClientProps) {
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
         <DialogContent className="sm:max-w-md rounded-2xl">
           <DialogHeader>
-            <DialogTitle>{editing ? 'Edit Brand' : 'New Brand'}</DialogTitle>
+            <DialogTitle>{editing ? t('brands.dialog.editTitle') : t('brands.dialog.newTitle')}</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <Label htmlFor="name">Brand Name *</Label>
+              <Label htmlFor="name">{t('common.labels.brandNameRequired')}</Label>
               <Input
                 id="name"
                 value={form.name}
                 onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-                placeholder="e.g. Nike, Adidas"
+                placeholder={t('common.placeholders.brandExample')}
                 required
                 className="mt-1 rounded-xl"
               />
             </div>
             <div>
-              <Label htmlFor="description">Description</Label>
+              <Label htmlFor="description">{t('common.labels.description')}</Label>
               <Input
                 id="description"
                 value={form.description}
                 onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-                placeholder="Short brand description"
+                placeholder={t('common.placeholders.brandDescription')}
                 className="mt-1 rounded-xl"
               />
             </div>
             <div>
-              <Label htmlFor="logoUrl">Logo URL</Label>
+              <Label htmlFor="logoUrl">{t('common.labels.logoUrl')}</Label>
               <Input
                 id="logoUrl"
                 value={form.logoUrl}
                 onChange={(e) => setForm((f) => ({ ...f, logoUrl: e.target.value }))}
-                placeholder="https://example.com/logo.png"
+                placeholder={t('common.placeholders.logoUrl')}
                 className="mt-1 rounded-xl"
               />
             </div>
             <div className="flex gap-3 pt-2">
               <Button type="button" variant="outline" className="flex-1 rounded-xl" onClick={() => setModalOpen(false)}>
-                Cancel
+                {t('common.actions.cancel')}
               </Button>
               <Button type="submit" disabled={loading} className="flex-1 rounded-xl">
-                {loading ? 'Saving...' : editing ? 'Save Changes' : 'Create Brand'}
+                {loading ? t('brands.dialog.saving') : editing ? t('common.actions.saveChanges') : t('common.actions.createBrand')}
               </Button>
             </div>
           </form>

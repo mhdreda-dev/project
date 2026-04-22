@@ -13,11 +13,13 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { toast } from '@/hooks/use-toast'
 import { loginSchema, type LoginInput } from '@/lib/validations/auth'
+import { useI18n } from '@/components/i18n-provider'
 
 export default function LoginPage() {
   const router = useRouter()
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const { t } = useI18n()
 
   const {
     register,
@@ -35,7 +37,11 @@ export default function LoginPage() {
       })
 
       if (result?.error) {
-        toast({ title: 'Login failed', description: 'Invalid email or password', variant: 'destructive' })
+        toast({
+          title: t('auth.login.failedTitle'),
+          description: t('auth.login.failedDescription'),
+          variant: 'destructive',
+        })
         return
       }
 
@@ -56,16 +62,16 @@ export default function LoginPage() {
             </div>
           </div>
           <CardTitle className="text-2xl">StockMaster</CardTitle>
-          <CardDescription>Sign in to your account</CardDescription>
+          <CardDescription>{t('auth.login.description')}</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div className="space-y-1">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">{t('common.labels.email')}</Label>
               <Input
                 id="email"
                 type="email"
-                placeholder="admin@stockmaster.com"
+                placeholder={t('common.placeholders.loginEmail')}
                 autoComplete="email"
                 {...register('email')}
               />
@@ -73,12 +79,12 @@ export default function LoginPage() {
             </div>
 
             <div className="space-y-1">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">{t('common.labels.password')}</Label>
               <div className="relative">
                 <Input
                   id="password"
                   type={showPassword ? 'text' : 'password'}
-                  placeholder="••••••••"
+                  placeholder={t('common.placeholders.password')}
                   autoComplete="current-password"
                   {...register('password')}
                 />
@@ -99,18 +105,18 @@ export default function LoginPage() {
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Signing in...
+                  {t('auth.login.submitting')}
                 </>
               ) : (
-                'Sign in'
+                t('auth.login.submit')
               )}
             </Button>
           </form>
 
           <div className="mt-4 text-center text-sm text-muted-foreground">
-            Don&apos;t have an account?{' '}
+            {t('auth.login.noAccount')}{' '}
             <Link href="/register" className="text-primary hover:underline font-medium">
-              Register
+              {t('common.actions.register')}
             </Link>
           </div>
 

@@ -12,10 +12,12 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { toast } from '@/hooks/use-toast'
 import { registerSchema, type RegisterInput } from '@/lib/validations/auth'
+import { useI18n } from '@/components/i18n-provider'
 
 export default function RegisterPage() {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
+  const { t } = useI18n()
 
   const {
     register,
@@ -35,11 +37,15 @@ export default function RegisterPage() {
       const json = await res.json()
 
       if (!res.ok) {
-        toast({ title: 'Registration failed', description: json.error, variant: 'destructive' })
+        toast({ title: t('auth.register.failedTitle'), description: json.error, variant: 'destructive' })
         return
       }
 
-      toast({ title: 'Account created!', description: 'Please sign in.', variant: 'default' })
+      toast({
+        title: t('auth.register.successTitle'),
+        description: t('auth.register.successDescription'),
+        variant: 'default',
+      })
       router.push('/login')
     } finally {
       setIsLoading(false)
@@ -55,26 +61,26 @@ export default function RegisterPage() {
               <Package className="h-7 w-7 text-white" />
             </div>
           </div>
-          <CardTitle className="text-2xl">Create Account</CardTitle>
-          <CardDescription>Join StockMaster today</CardDescription>
+          <CardTitle className="text-2xl">{t('auth.register.title')}</CardTitle>
+          <CardDescription>{t('auth.register.description')}</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div className="space-y-1">
-              <Label htmlFor="name">Full Name</Label>
-              <Input id="name" placeholder="John Doe" {...register('name')} />
+              <Label htmlFor="name">{t('common.labels.fullName')}</Label>
+              <Input id="name" placeholder={t('common.placeholders.fullName')} {...register('name')} />
               {errors.name && <p className="text-xs text-destructive">{errors.name.message}</p>}
             </div>
 
             <div className="space-y-1">
-              <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" placeholder="you@company.com" {...register('email')} />
+              <Label htmlFor="email">{t('common.labels.email')}</Label>
+              <Input id="email" type="email" placeholder={t('common.placeholders.email')} {...register('email')} />
               {errors.email && <p className="text-xs text-destructive">{errors.email.message}</p>}
             </div>
 
             <div className="space-y-1">
-              <Label htmlFor="password">Password</Label>
-              <Input id="password" type="password" placeholder="Min 8 chars, 1 uppercase, 1 number" {...register('password')} />
+              <Label htmlFor="password">{t('common.labels.password')}</Label>
+              <Input id="password" type="password" placeholder={t('common.placeholders.passwordHint')} {...register('password')} />
               {errors.password && (
                 <p className="text-xs text-destructive">{errors.password.message}</p>
               )}
@@ -84,18 +90,18 @@ export default function RegisterPage() {
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Creating account...
+                  {t('auth.register.submitting')}
                 </>
               ) : (
-                'Create account'
+                t('auth.register.submit')
               )}
             </Button>
           </form>
 
           <div className="mt-4 text-center text-sm text-muted-foreground">
-            Already have an account?{' '}
+            {t('auth.register.alreadyHaveAccount')}{' '}
             <Link href="/login" className="text-primary hover:underline font-medium">
-              Sign in
+              {t('common.actions.signIn')}
             </Link>
           </div>
         </CardContent>

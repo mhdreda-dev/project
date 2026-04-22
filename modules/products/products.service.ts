@@ -53,6 +53,36 @@ export class ProductsService {
     return { products: products.map(serializeProduct), meta: paginationMeta(total, page, limit) }
   }
 
+  /**
+   * Unpaginated, filter-aware product list for CSV export.
+   * Includes totalStock (aggregated across sizes) because that's the column
+   * operators expect in the export.
+   */
+  async listAll(filters: { search?: string; category?: string; brandId?: string; isActive?: boolean }) {
+    const where = {
+      ...(filters.search && {
+        OR: [
+          { name: { contains: filters.search, mode: 'insensitive' as const } },
+          { sku: { contains: filters.search, mode: 'insensitive' as const } },
+          { description: { contains: filters.search, mode: 'insensitive' as const } },
+        ],
+      }),
+      ...(filters.category && { category: { equals: filters.category, mode: 'insensitive' as const } }),
+      ...(filters.brandId && { brandId: filters.brandId }),
+      ...(filters.isActive !== undefined && { isActive: filters.isActive }),
+    }
+    const rows = await db.product.findMany({
+      where,
+      include: {
+        brand: { select: { name: true } },
+        sizes: { select: { size: true, quantity: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 10_000,
+    })
+    return rows.map(serializeProduct)
+  }
+
   async findById(id: string) {
     const p = await db.product.findUnique({
       where: { id },

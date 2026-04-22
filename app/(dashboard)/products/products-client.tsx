@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { SafeImage } from '@/components/ui/safe-image'
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 import {
   Plus, Search, Package, Pencil, Trash2, X, ChevronLeft, ChevronRight,
   AlertTriangle, Loader2, Check,
@@ -15,8 +15,12 @@ import { Label } from '@/components/ui/label'
 import { PageHeader } from '@/components/ui/page-header'
 import { EmptyState } from '@/components/ui/empty-state'
 import { ImageUpload } from '@/components/ui/image-upload'
+import { ProductGridSkeleton } from '@/components/ui/page-skeletons'
+import { ExportButton } from '@/components/ui/export-button'
 import { useToast } from '@/hooks/use-toast'
 import { formatCurrency } from '@/lib/utils'
+import Link from 'next/link'
+import { useI18n } from '@/components/i18n-provider'
 
 type Brand = { id: string; name: string }
 
@@ -61,10 +65,10 @@ interface Props {
 
 type PresetKey = 'clothing' | 'shoes' | 'other'
 
-const SIZE_PRESETS: Record<PresetKey, { label: string; sizes: string[] }> = {
-  clothing: { label: 'Clothing', sizes: ['S', 'M', 'L', 'XL', 'XXL'] },
-  shoes:    { label: 'Shoes',    sizes: ['38', '39', '40', '41', '42', '43', '44', '45'] },
-  other:    { label: 'Other',    sizes: [] },
+const SIZE_PRESETS: Record<PresetKey, { sizes: string[] }> = {
+  clothing: { sizes: ['S', 'M', 'L', 'XL', 'XXL'] },
+  shoes:    { sizes: ['38', '39', '40', '41', '42', '43', '44', '45'] },
+  other:    { sizes: [] },
 }
 
 const DEFAULT_FORM = {
@@ -84,15 +88,30 @@ type SelectedSize = { size: string; quantity: number }
 
 export function ProductsClient({ initialProducts, meta: initialMeta, brands, isAdmin }: Props) {
   const router = useRouter()
+  const pathname = usePathname()
+  const urlSearchParams = useSearchParams()
   const { toast } = useToast()
+  const { t } = useI18n()
 
   const [products, setProducts] = useState(initialProducts)
   const [meta, setMeta] = useState(initialMeta)
-  const [search, setSearch] = useState('')
-  const [brandFilter, setBrandFilter] = useState('')
-  const [statusFilter, setStatusFilter] = useState('')
-  const [page, setPage] = useState(1)
+  // Initial state hydrated from the URL so refresh + share links preserve filters.
+  const [search, setSearch] = useState(urlSearchParams.get('search') ?? '')
+  const [brandFilter, setBrandFilter] = useState(urlSearchParams.get('brandId') ?? '')
+  const [statusFilter, setStatusFilter] = useState(urlSearchParams.get('isActive') ?? '')
+  const [page, setPage] = useState(Number(urlSearchParams.get('page') ?? 1))
   const [fetching, setFetching] = useState(false)
+
+  /** Sync current filter state → URL (shallow replace, no scroll). */
+  const syncUrl = useCallback((next: { search?: string; brandId?: string; isActive?: string; page?: number }) => {
+    const params = new URLSearchParams()
+    if (next.search) params.set('search', next.search)
+    if (next.brandId) params.set('brandId', next.brandId)
+    if (next.isActive) params.set('isActive', next.isActive)
+    if (next.page && next.page > 1) params.set('page', String(next.page))
+    const qs = params.toString()
+    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false })
+  }, [pathname, router])
 
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState<Product | null>(null)
@@ -209,7 +228,7 @@ export function ProductsClient({ initialProducts, meta: initialMeta, brands, isA
 
     const priceNum = Number(form.price)
     if (!Number.isFinite(priceNum) || priceNum < 0) {
-      toast({ title: 'Enter a valid sale price', variant: 'destructive' })
+      toast({ title: t('products.toast.invalidSalePrice'), variant: 'destructive' })
       return
     }
 
@@ -237,27 +256,27 @@ export function ProductsClient({ initialProducts, meta: initialMeta, brands, isA
       })
       const json = await res.json()
       if (!res.ok) throw new Error(json.error)
-      toast({ title: editing ? 'Product updated' : 'Product created' })
+      toast({ title: editing ? t('products.toast.updated') : t('products.toast.created') })
       setModalOpen(false)
       applyFilters()
     } catch (e) {
-      toast({ title: 'Error', description: e instanceof Error ? e.message : 'Something went wrong', variant: 'destructive' })
+      toast({ title: t('common.errorTitle'), description: e instanceof Error ? e.message : t('products.toast.error'), variant: 'destructive' })
     } finally {
       setSaving(false)
     }
   }
 
   async function handleDelete(product: Product) {
-    if (!confirm(`Delete "${product.name}"? This cannot be undone.`)) return
+    if (!confirm(t('products.confirmDelete', { name: product.name }))) return
     setDeleting(product.id)
     try {
       const res = await fetch(`/api/products/${product.id}`, { method: 'DELETE' })
       const json = await res.json()
       if (!res.ok) throw new Error(json.error)
-      toast({ title: 'Product deleted' })
+      toast({ title: t('products.toast.deleted') })
       applyFilters()
     } catch (e) {
-      toast({ title: 'Error', description: e instanceof Error ? e.message : 'Cannot delete', variant: 'destructive' })
+      toast({ title: t('common.errorTitle'), description: e instanceof Error ? e.message : t('products.toast.cannotDelete'), variant: 'destructive' })
     } finally {
       setDeleting(null)
     }
@@ -270,15 +289,23 @@ export function ProductsClient({ initialProducts, meta: initialMeta, brands, isA
   return (
     <div>
       <PageHeader
-        title="Products"
-        description={`${meta.total} products in your catalog`}
+        title={t('products.title')}
+        description={t('products.description', { count: meta.total })}
         action={
-          isAdmin && (
-            <Button onClick={openCreate} className="gap-2 rounded-xl">
-              <Plus className="h-4 w-4" />
-              Add Product
-            </Button>
-          )
+          <div className="flex gap-2">
+            <ExportButton
+              endpoint="/api/products/export"
+              filename="products"
+              params={{ search, brandId: brandFilter, isActive: statusFilter }}
+              disabled={meta.total === 0}
+            />
+            {isAdmin && (
+              <Button onClick={openCreate} className="gap-2 rounded-xl">
+                <Plus className="h-4 w-4" />
+                {t('common.actions.addProduct')}
+              </Button>
+            )}
+          </div>
         }
       />
 
@@ -287,7 +314,7 @@ export function ProductsClient({ initialProducts, meta: initialMeta, brands, isA
         <div className="relative flex-1 min-w-[200px] max-w-xs">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
           <Input
-            placeholder="Search products..."
+            placeholder={t('common.placeholders.searchProducts')}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && applyFilters({ search: e.currentTarget.value })}
@@ -300,7 +327,7 @@ export function ProductsClient({ initialProducts, meta: initialMeta, brands, isA
           onChange={(e) => { setBrandFilter(e.target.value); applyFilters({ brandId: e.target.value }) }}
           className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
         >
-          <option value="">All Brands</option>
+          <option value="">{t('products.filters.allBrands')}</option>
           {brands.map((b) => (
             <option key={b.id} value={b.id}>{b.name}</option>
           ))}
@@ -311,32 +338,28 @@ export function ProductsClient({ initialProducts, meta: initialMeta, brands, isA
           onChange={(e) => { setStatusFilter(e.target.value); applyFilters({ isActive: e.target.value }) }}
           className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
         >
-          <option value="">All Status</option>
-          <option value="true">Active</option>
-          <option value="false">Inactive</option>
+          <option value="">{t('products.filters.allStatuses')}</option>
+          <option value="true">{t('common.status.active')}</option>
+          <option value="false">{t('common.status.inactive')}</option>
         </select>
 
         {hasFilters && (
           <Button variant="ghost" size="sm" onClick={clearFilters} className="gap-1.5 text-slate-500 h-10 rounded-xl">
             <X className="h-3.5 w-3.5" />
-            Clear
+            {t('common.actions.clear')}
           </Button>
         )}
       </div>
 
       {/* Grid */}
       {fetching ? (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {[...Array(8)].map((_, i) => (
-            <div key={i} className="bg-white rounded-2xl border border-slate-100 h-64 animate-pulse" />
-          ))}
-        </div>
+        <ProductGridSkeleton count={8} />
       ) : products.length === 0 ? (
         <EmptyState
           icon={Package}
-          title="No products found"
-          description={hasFilters ? 'Try adjusting your filters' : 'Add your first product to get started'}
-          action={isAdmin && <Button onClick={openCreate} className="gap-2"><Plus className="h-4 w-4" />Add Product</Button>}
+          title={t('products.empty.title')}
+          description={hasFilters ? t('products.empty.filtered') : t('products.empty.initial')}
+          action={isAdmin && <Button onClick={openCreate} className="gap-2"><Plus className="h-4 w-4" />{t('common.actions.addProduct')}</Button>}
         />
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -346,9 +369,10 @@ export function ProductsClient({ initialProducts, meta: initialMeta, brands, isA
             const priceNum = Number(product.price ?? 0)
 
             return (
-              <div
+              <Link
                 key={product.id}
-                className="bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all overflow-hidden group"
+                href={`/products/${product.id}`}
+                className="bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all overflow-hidden group block focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <div className="relative h-40 bg-slate-50 flex items-center justify-center overflow-hidden">
                   <SafeImage
@@ -360,14 +384,14 @@ export function ProductsClient({ initialProducts, meta: initialMeta, brands, isA
                   />
                   {!product.isActive && (
                     <div className="absolute inset-0 bg-slate-900/40 flex items-center justify-center">
-                      <Badge variant="secondary" className="text-xs">Inactive</Badge>
+                      <Badge variant="secondary" className="text-xs">{t('products.card.inactive')}</Badge>
                     </div>
                   )}
                   {isLow && product.isActive && (
                     <div className="absolute top-2 right-2">
                       <Badge variant="warning" className="text-[10px] px-1.5 py-0 gap-1">
                         <AlertTriangle className="h-2.5 w-2.5" />
-                        Low Stock
+                        {t('common.status.lowStock')}
                       </Badge>
                     </div>
                   )}
@@ -375,14 +399,16 @@ export function ProductsClient({ initialProducts, meta: initialMeta, brands, isA
                     <div className="absolute top-2 left-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                       <button
                         className="h-7 w-7 rounded-lg bg-white/90 backdrop-blur-sm flex items-center justify-center text-slate-600 hover:text-blue-600 shadow-sm"
-                        onClick={() => openEdit(product)}
+                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); openEdit(product) }}
+                        aria-label={`Edit ${product.name}`}
                       >
                         <Pencil className="h-3.5 w-3.5" />
                       </button>
                       <button
                         className="h-7 w-7 rounded-lg bg-white/90 backdrop-blur-sm flex items-center justify-center text-slate-600 hover:text-red-600 shadow-sm"
-                        onClick={() => handleDelete(product)}
+                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleDelete(product) }}
                         disabled={deleting === product.id}
+                        aria-label={`Delete ${product.name}`}
                       >
                         {deleting === product.id
                           ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -398,7 +424,7 @@ export function ProductsClient({ initialProducts, meta: initialMeta, brands, isA
                       <p className="text-[10px] text-slate-400 uppercase tracking-wide font-medium mb-0.5">{product.brand.name}</p>
                     )}
                     <h3 className="font-semibold text-slate-900 text-sm truncate">{product.name}</h3>
-                    <p className="text-xs text-slate-400 mt-0.5">SKU: {product.sku}</p>
+                    <p className="text-xs text-slate-400 mt-0.5">{t('common.labels.skuValue', { sku: product.sku })}</p>
                   </div>
 
                   {product.sizes.length > 0 && (
@@ -419,18 +445,18 @@ export function ProductsClient({ initialProducts, meta: initialMeta, brands, isA
 
                   <div className="flex items-center justify-between pt-2 border-t border-slate-50">
                     <div>
-                      <p className="text-xs text-slate-400">Stock</p>
+                      <p className="text-xs text-slate-400">{t('common.labels.stock')}</p>
                       <p className={`text-sm font-semibold ${isLow ? 'text-amber-600' : 'text-slate-800'}`}>
-                        {totalQty} units
+                        {t('common.misc.units', { count: totalQty })}
                       </p>
                     </div>
                     <div className="text-right">
-                      <p className="text-xs text-slate-400">Price</p>
+                      <p className="text-xs text-slate-400">{t('common.labels.priceMad')}</p>
                       <p className="text-sm font-semibold text-slate-800">{formatCurrency(priceNum)}</p>
                     </div>
                   </div>
                 </div>
-              </div>
+              </Link>
             )
           })}
         </div>
@@ -440,7 +466,7 @@ export function ProductsClient({ initialProducts, meta: initialMeta, brands, isA
       {meta.totalPages > 1 && (
         <div className="flex items-center justify-between mt-6">
           <p className="text-sm text-slate-500">
-            Page {meta.page} of {meta.totalPages} · {meta.total} total
+            {t('common.misc.pageOfTotal', { page: meta.page, total: meta.totalPages, count: meta.total })}
           </p>
           <div className="flex gap-2">
             <Button
@@ -469,7 +495,7 @@ export function ProductsClient({ initialProducts, meta: initialMeta, brands, isA
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
         <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl">
           <DialogHeader>
-            <DialogTitle>{editing ? 'Edit Product' : 'New Product'}</DialogTitle>
+            <DialogTitle>{editing ? t('products.dialog.editTitle') : t('products.dialog.newTitle')}</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-5">
             <ImageUpload
@@ -480,7 +506,7 @@ export function ProductsClient({ initialProducts, meta: initialMeta, brands, isA
             {/* Basic info */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="name">Name *</Label>
+                <Label htmlFor="name">{t('products.dialog.nameRequired')}</Label>
                 <Input
                   id="name"
                   value={form.name}
@@ -491,7 +517,7 @@ export function ProductsClient({ initialProducts, meta: initialMeta, brands, isA
                 />
               </div>
               <div>
-                <Label htmlFor="sku">SKU *</Label>
+                <Label htmlFor="sku">{t('products.dialog.skuRequired')}</Label>
                 <Input
                   id="sku"
                   value={form.sku}
@@ -505,38 +531,38 @@ export function ProductsClient({ initialProducts, meta: initialMeta, brands, isA
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="brand">Brand</Label>
+                <Label htmlFor="brand">{t('common.labels.brand')}</Label>
                 <select
                   id="brand"
                   value={form.brandId}
                   onChange={(e) => setForm((f) => ({ ...f, brandId: e.target.value }))}
                   className="mt-1 w-full h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
-                  <option value="">No Brand</option>
+                  <option value="">{t('common.labels.noBrand')}</option>
                   {brands.map((b) => (
                     <option key={b.id} value={b.id}>{b.name}</option>
                   ))}
                 </select>
               </div>
               <div>
-                <Label htmlFor="category">Category</Label>
+                <Label htmlFor="category">{t('common.labels.category')}</Label>
                 <Input
                   id="category"
                   value={form.category}
                   onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
-                  placeholder="Clothing, Shoes..."
+                  placeholder={t('common.placeholders.categoryExample')}
                   className="mt-1 rounded-xl"
                 />
               </div>
             </div>
 
             <div>
-              <Label htmlFor="description">Description</Label>
+              <Label htmlFor="description">{t('products.dialog.description')}</Label>
               <textarea
                 id="description"
                 value={form.description}
                 onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-                placeholder="Product description..."
+                placeholder={t('common.placeholders.productDescription')}
                 rows={2}
                 className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
               />
@@ -545,7 +571,7 @@ export function ProductsClient({ initialProducts, meta: initialMeta, brands, isA
             {/* Pricing (product-level) */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
-                <Label htmlFor="price">Sale Price *</Label>
+                <Label htmlFor="price">{t('common.labels.salePriceMad')} *</Label>
                 <Input
                   id="price"
                   type="number"
@@ -553,13 +579,13 @@ export function ProductsClient({ initialProducts, meta: initialMeta, brands, isA
                   min={0}
                   value={form.price}
                   onChange={(e) => setForm((f) => ({ ...f, price: e.target.value }))}
-                  placeholder="0.00"
+                  placeholder={t('common.placeholders.priceMad')}
                   required
                   className="mt-1 rounded-xl"
                 />
               </div>
               <div>
-                <Label htmlFor="costPrice">Cost Price</Label>
+                <Label htmlFor="costPrice">{t('common.labels.costPriceMad')}</Label>
                 <Input
                   id="costPrice"
                   type="number"
@@ -567,12 +593,12 @@ export function ProductsClient({ initialProducts, meta: initialMeta, brands, isA
                   min={0}
                   value={form.costPrice}
                   onChange={(e) => setForm((f) => ({ ...f, costPrice: e.target.value }))}
-                  placeholder="0.00"
+                  placeholder={t('common.placeholders.priceMad')}
                   className="mt-1 rounded-xl"
                 />
               </div>
               <div>
-                <Label htmlFor="lowStock">Low Stock Threshold</Label>
+                <Label htmlFor="lowStock">{t('common.labels.lowStockThreshold')}</Label>
                 <Input
                   id="lowStock"
                   type="number"
@@ -587,7 +613,7 @@ export function ProductsClient({ initialProducts, meta: initialMeta, brands, isA
             {/* Sizes */}
             <div>
               <div className="flex items-center justify-between mb-2">
-                <Label>Sizes</Label>
+                <Label>{t('products.dialog.sizes')}</Label>
                 <div className="flex gap-1.5">
                   {(Object.keys(SIZE_PRESETS) as PresetKey[]).map((key) => (
                     <button
@@ -600,7 +626,7 @@ export function ProductsClient({ initialProducts, meta: initialMeta, brands, isA
                           : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'
                       }`}
                     >
-                      {SIZE_PRESETS[key].label}
+                      {t(`products.dialog.presets.${key}`)}
                     </button>
                   ))}
                 </div>
@@ -642,11 +668,11 @@ export function ProductsClient({ initialProducts, meta: initialMeta, brands, isA
                         addCustomSize()
                       }
                     }}
-                    placeholder="Enter custom size and press Enter"
+                    placeholder={t('common.placeholders.customSize')}
                     className="rounded-xl h-9 text-sm"
                   />
                   <Button type="button" variant="outline" onClick={addCustomSize} className="rounded-xl h-9">
-                    Add
+                    {t('common.actions.add')}
                   </Button>
                 </div>
               )}
@@ -654,13 +680,13 @@ export function ProductsClient({ initialProducts, meta: initialMeta, brands, isA
               {/* Selected sizes with quantity */}
               {selected.length === 0 ? (
                 <p className="text-xs text-slate-400 italic">
-                  No sizes selected — product will have no size variants.
+                  {t('products.dialog.noSizes')}
                 </p>
               ) : (
                 <div className="space-y-1.5 max-h-52 overflow-y-auto pr-1">
                   <div className="grid grid-cols-[1fr_100px_32px] gap-2 text-[10px] font-medium text-slate-400 uppercase tracking-wide px-1">
-                    <span>Size</span>
-                    <span>Quantity</span>
+                    <span>{t('common.labels.size')}</span>
+                    <span>{t('common.labels.quantity')}</span>
                     <span />
                   </div>
                   {selected.map((s) => (
@@ -690,7 +716,7 @@ export function ProductsClient({ initialProducts, meta: initialMeta, brands, isA
               {/* Show custom entries also under clothing/shoes presets */}
               {preset !== 'other' && customSelected.length > 0 && (
                 <p className="text-xs text-slate-500 mt-2">
-                  Includes {customSelected.length} custom size(s) from this product.
+                  {t('products.dialog.includesCustomSizes', { count: customSelected.length })}
                 </p>
               )}
             </div>
@@ -703,16 +729,16 @@ export function ProductsClient({ initialProducts, meta: initialMeta, brands, isA
                 onChange={(e) => setForm((f) => ({ ...f, isActive: e.target.checked }))}
                 className="h-4 w-4 rounded border-slate-300 text-blue-600"
               />
-              <span className="text-sm text-slate-700">Active (visible in catalog)</span>
+              <span className="text-sm text-slate-700">{t('products.dialog.activeVisible')}</span>
             </label>
 
             <div className="flex gap-3 pt-2">
               <Button type="button" variant="outline" className="flex-1 rounded-xl" onClick={() => setModalOpen(false)}>
-                Cancel
+                {t('common.actions.cancel')}
               </Button>
               <Button type="submit" disabled={saving} className="flex-1 rounded-xl">
                 {saving && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-                {editing ? 'Save Changes' : 'Create Product'}
+                {editing ? t('common.actions.saveChanges') : t('common.actions.createProduct')}
               </Button>
             </div>
           </form>

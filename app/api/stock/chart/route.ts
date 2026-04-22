@@ -9,9 +9,10 @@ export async function GET(req: NextRequest) {
 
   const days = Number(req.nextUrl.searchParams.get('days') ?? 30)
   const clampedDays = Math.min(Math.max(7, days), 365)
+  const productId = req.nextUrl.searchParams.get('productId') ?? undefined
 
   try {
-    const data = await stockService.getMovementChart(clampedDays)
+    const data = await stockService.getMovementChart(clampedDays, productId)
     return apiSuccess(data)
   } catch {
     return apiError('Failed to fetch chart data', 500)

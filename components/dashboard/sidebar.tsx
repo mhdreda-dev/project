@@ -22,40 +22,48 @@ import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
+import { useI18n } from '@/components/i18n-provider'
 
-type NavItem = { href: string; label: string; icon: React.ComponentType<{ className?: string }>; adminOnly?: boolean }
-type NavGroup = { label: string; items: NavItem[] }
+type NavItem = {
+  href: string
+  labelKey: string
+  icon: React.ComponentType<{ className?: string }>
+  adminOnly?: boolean
+}
 
-const navGroups: NavGroup[] = [
-  {
-    label: 'Overview',
-    items: [
-      { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-      { href: '/reports', label: 'Reports', icon: BarChart3 },
-    ],
-  },
-  {
-    label: 'Inventory',
-    items: [
-      { href: '/products', label: 'Products', icon: Package },
-      { href: '/brands', label: 'Brands', icon: Tag },
-      { href: '/stock', label: 'Stock Movements', icon: ArrowRightLeft },
-      { href: '/stock/low', label: 'Low Stock', icon: AlertTriangle },
-    ],
-  },
-  {
-    label: 'Administration',
-    items: [
-      { href: '/users', label: 'Users', icon: Users, adminOnly: true },
-      { href: '/logs', label: 'Activity Logs', icon: ClipboardList, adminOnly: true },
-    ],
-  },
-]
+type NavGroup = { labelKey: string; items: NavItem[] }
 
 function NavContent({ onClose }: { onClose?: () => void }) {
   const pathname = usePathname()
   const { data: session } = useSession()
+  const { t } = useI18n()
   const isAdmin = session?.user?.role === 'ADMIN'
+
+  const navGroups: NavGroup[] = [
+    {
+      labelKey: 'shell.sidebar.overview',
+      items: [
+        { href: '/dashboard', labelKey: 'shell.sidebar.dashboard', icon: LayoutDashboard },
+        { href: '/reports', labelKey: 'shell.sidebar.reports', icon: BarChart3 },
+      ],
+    },
+    {
+      labelKey: 'shell.sidebar.inventory',
+      items: [
+        { href: '/products', labelKey: 'shell.sidebar.products', icon: Package },
+        { href: '/brands', labelKey: 'shell.sidebar.brands', icon: Tag },
+        { href: '/stock', labelKey: 'shell.sidebar.stock', icon: ArrowRightLeft },
+        { href: '/stock/low', labelKey: 'shell.sidebar.lowStock', icon: AlertTriangle },
+      ],
+    },
+    {
+      labelKey: 'shell.sidebar.administration',
+      items: [
+        { href: '/users', labelKey: 'shell.sidebar.users', icon: Users, adminOnly: true },
+        { href: '/logs', labelKey: 'shell.sidebar.logs', icon: ClipboardList, adminOnly: true },
+      ],
+    },
+  ]
 
   return (
     <div className="flex flex-col h-full">
@@ -67,7 +75,7 @@ function NavContent({ onClose }: { onClose?: () => void }) {
         <div>
           <span className="font-bold text-slate-900 text-base tracking-tight">StockMaster</span>
           <p className="text-[10px] text-slate-400 font-medium uppercase tracking-widest">
-            Inventory Pro
+            {t('shell.brand.subtitle')}
           </p>
         </div>
       </div>
@@ -79,9 +87,9 @@ function NavContent({ onClose }: { onClose?: () => void }) {
           if (!visibleItems.length) return null
 
           return (
-            <div key={group.label}>
+            <div key={group.labelKey}>
               <p className="px-3 mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-slate-400">
-                {group.label}
+                {t(group.labelKey)}
               </p>
               <div className="space-y-0.5">
                 {visibleItems.map((item) => {
@@ -101,14 +109,14 @@ function NavContent({ onClose }: { onClose?: () => void }) {
                           ? 'bg-blue-600 text-white shadow-sm shadow-blue-200'
                           : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900',
                       )}
-                    >
+                      >
                       <Icon
                         className={cn(
                           'h-4 w-4 shrink-0 transition-transform',
                           isActive ? 'text-white' : 'text-slate-400 group-hover:text-slate-600',
                         )}
                       />
-                      <span className="flex-1">{item.label}</span>
+                      <span className="flex-1">{t(item.labelKey)}</span>
                       {isActive && <ChevronRight className="h-3 w-3 text-blue-200" />}
                     </Link>
                   )
@@ -134,7 +142,7 @@ function NavContent({ onClose }: { onClose?: () => void }) {
                 isAdmin ? 'bg-blue-100 text-blue-700 hover:bg-blue-100' : '',
               )}
             >
-              {session?.user?.role}
+              {session?.user?.role === 'ADMIN' ? t('common.roles.admin') : t('common.roles.employee')}
             </Badge>
           </div>
         </div>
@@ -145,7 +153,7 @@ function NavContent({ onClose }: { onClose?: () => void }) {
           onClick={() => signOut({ callbackUrl: '/login' })}
         >
           <LogOut className="h-4 w-4 mr-2" />
-          Sign out
+          {t('common.actions.signOut')}
         </Button>
       </div>
     </div>
@@ -166,12 +174,14 @@ export function Sidebar() {
 }
 
 export function MobileSidebar() {
+  const { t } = useI18n()
+
   return (
     <Sheet>
       <SheetTrigger asChild>
         <Button variant="ghost" size="icon" className="lg:hidden">
           <Menu className="h-5 w-5" />
-          <span className="sr-only">Open menu</span>
+          <span className="sr-only">{t('common.actions.openMenu')}</span>
         </Button>
       </SheetTrigger>
       <SheetContent>

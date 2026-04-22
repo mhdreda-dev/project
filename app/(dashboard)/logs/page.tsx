@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { formatDate } from '@/lib/utils'
 import { ClipboardList } from 'lucide-react'
+import { getServerI18n } from '@/lib/i18n/server'
 
 const actionColor: Record<string, 'default' | 'success' | 'destructive' | 'info' | 'warning' | 'secondary' | 'outline'> = {
   CREATE: 'success',
@@ -24,6 +25,7 @@ export default async function LogsPage({
 }) {
   const session = await auth()
   if (session?.user?.role !== 'ADMIN') redirect('/dashboard')
+  const { t } = getServerI18n()
 
   const page = Number(searchParams.page ?? 1)
   const { logs, meta } = await logsService.list({ page, limit: 30 })
@@ -33,19 +35,19 @@ export default async function LogsPage({
       <div className="flex items-center gap-3">
         <ClipboardList className="h-8 w-8 text-primary" />
         <div>
-          <h1 className="text-3xl font-bold">Activity Logs</h1>
-          <p className="text-muted-foreground mt-1">Complete audit trail — {meta.total} events</p>
+          <h1 className="text-3xl font-bold">{t('logs.title')}</h1>
+          <p className="text-muted-foreground mt-1">{t('logs.description', { count: meta.total })}</p>
         </div>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">All Activity</CardTitle>
-          <CardDescription>Page {meta.page} of {meta.totalPages}</CardDescription>
+          <CardTitle className="text-base">{t('logs.allActivity')}</CardTitle>
+          <CardDescription>{t('common.misc.pageOf', { page: meta.page, total: meta.totalPages })}</CardDescription>
         </CardHeader>
         <CardContent>
           {logs.length === 0 ? (
-            <p className="text-sm text-center text-muted-foreground py-8">No activity logs yet.</p>
+            <p className="text-sm text-center text-muted-foreground py-8">{t('logs.empty')}</p>
           ) : (
             <div className="divide-y font-mono text-sm">
               {logs.map((log) => (
@@ -60,7 +62,7 @@ export default async function LogsPage({
                     )}
                     {log.user && (
                       <span className="ml-2 text-foreground font-medium">
-                        by {log.user.name}
+                        {t('common.misc.byUser', { name: log.user.name })}
                       </span>
                     )}
                     {log.ipAddress && (
@@ -79,13 +81,13 @@ export default async function LogsPage({
 
       {meta.totalPages > 1 && (
         <div className="flex items-center justify-between">
-          <p className="text-sm text-muted-foreground">Page {meta.page} of {meta.totalPages}</p>
+          <p className="text-sm text-muted-foreground">{t('common.misc.pageOf', { page: meta.page, total: meta.totalPages })}</p>
           <div className="flex gap-2">
             <a href={`/logs?page=${meta.page - 1}`}>
-              <button className="px-3 py-1.5 text-sm border rounded-md disabled:opacity-50" disabled={!meta.hasPrev}>Previous</button>
+              <button className="px-3 py-1.5 text-sm border rounded-md disabled:opacity-50" disabled={!meta.hasPrev}>{t('common.actions.previous')}</button>
             </a>
             <a href={`/logs?page=${meta.page + 1}`}>
-              <button className="px-3 py-1.5 text-sm border rounded-md disabled:opacity-50" disabled={!meta.hasNext}>Next</button>
+              <button className="px-3 py-1.5 text-sm border rounded-md disabled:opacity-50" disabled={!meta.hasNext}>{t('common.actions.next')}</button>
             </a>
           </div>
         </div>

@@ -14,9 +14,11 @@ import {
   DollarSign,
 } from 'lucide-react'
 import { DashboardChart } from '@/components/dashboard/dashboard-chart'
+import { getServerI18n } from '@/lib/i18n/server'
 
 export default async function DashboardPage() {
   const session = await auth()
+  const { t } = getServerI18n()
 
   const [stats, lowStock, recentMovements] = await Promise.all([
     productsService.getDashboardStats(),
@@ -36,39 +38,39 @@ export default async function DashboardPage() {
     <div className="space-y-8">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold">Dashboard</h1>
+        <h1 className="text-3xl font-bold">{t('dashboard.title')}</h1>
         <p className="text-muted-foreground mt-1">
-          Welcome back, {session?.user?.name}. Here&apos;s what&apos;s happening.
+          {t('dashboard.welcome', { name: session?.user?.name ?? '—' })}
         </p>
       </div>
 
       {/* Stats cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <StatCard
-          title="Total Products"
+          title={t('dashboard.stats.totalProducts')}
           value={stats.totalProducts.toLocaleString()}
-          description="Active products"
+          description={t('dashboard.stats.activeProducts')}
           icon={<Package className="h-5 w-5 text-blue-600" />}
           color="blue"
         />
         <StatCard
-          title="Total Stock"
+          title={t('dashboard.stats.totalStock')}
           value={stats.totalStock.toLocaleString()}
-          description="Units across all sizes"
+          description={t('dashboard.stats.unitsAcross')}
           icon={<TrendingUp className="h-5 w-5 text-green-600" />}
           color="green"
         />
         <StatCard
-          title="Inventory Value"
+          title={t('dashboard.stats.inventoryValueMad')}
           value={formatCurrency(stats.totalInventoryValue)}
-          description="At retail price"
+          description={t('dashboard.stats.atRetailPrice')}
           icon={<DollarSign className="h-5 w-5 text-purple-600" />}
           color="purple"
         />
         <StatCard
-          title="Low Stock Alerts"
+          title={t('dashboard.stats.lowStockAlerts')}
           value={stats.lowStockCount.toLocaleString()}
-          description="Need restocking"
+          description={t('dashboard.stats.needRestocking')}
           icon={<AlertTriangle className="h-5 w-5 text-orange-600" />}
           color="orange"
           alert={stats.lowStockCount > 0}
@@ -85,13 +87,13 @@ export default async function DashboardPage() {
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
               <AlertTriangle className="h-4 w-4 text-orange-500" />
-              Low Stock Alerts
+              {t('dashboard.lowStock.title')}
             </CardTitle>
-            <CardDescription>{lowStock.length} items need attention</CardDescription>
+            <CardDescription>{t('dashboard.lowStock.count', { count: lowStock.length })}</CardDescription>
           </CardHeader>
           <CardContent>
             {lowStock.length === 0 ? (
-              <p className="text-sm text-muted-foreground">All stock levels are healthy.</p>
+              <p className="text-sm text-muted-foreground">{t('dashboard.lowStock.allHealthy')}</p>
             ) : (
               <div className="space-y-3">
                 {lowStock.slice(0, 6).map((item) => (
@@ -99,11 +101,11 @@ export default async function DashboardPage() {
                     <div className="min-w-0">
                       <p className="text-sm font-medium truncate">{item.product.name}</p>
                       <p className="text-xs text-muted-foreground">
-                        Size {item.size} · SKU {item.product.sku}
+                        {t('common.labels.sizeSku', { size: item.size, sku: item.product.sku })}
                       </p>
                     </div>
                     <Badge variant="warning" className="ml-2 shrink-0">
-                      {item.quantity} left
+                      {t('common.misc.leftCount', { count: item.quantity })}
                     </Badge>
                   </div>
                 ))}
@@ -116,8 +118,8 @@ export default async function DashboardPage() {
       {/* Recent Movements */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Recent Stock Movements</CardTitle>
-          <CardDescription>Last 5 transactions</CardDescription>
+          <CardTitle className="text-base">{t('dashboard.recent.title')}</CardTitle>
+          <CardDescription>{t('dashboard.recent.description')}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
@@ -134,14 +136,16 @@ export default async function DashboardPage() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium">
-                    {m.product.name} — Size {m.productSize.size}
+                    {t('dashboard.recent.size', { product: m.product.name, size: m.productSize.size })}
                   </p>
-                  <p className="text-xs text-muted-foreground">by {m.user.name}</p>
+                  <p className="text-xs text-muted-foreground">{t('common.misc.byUser', { name: m.user.name })}</p>
                 </div>
                 <div className="text-right shrink-0">
                   <p className="text-sm font-semibold">
-                    {m.type === 'OUT' ? '-' : '+'}
-                    {m.quantity} units
+                    {t('dashboard.recent.units', {
+                      sign: m.type === 'OUT' ? '-' : '+',
+                      count: m.quantity,
+                    })}
                   </p>
                   <p className="text-xs text-muted-foreground">{formatDate(m.createdAt)}</p>
                 </div>
