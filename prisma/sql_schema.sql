@@ -110,6 +110,7 @@ CREATE TABLE products (
   category    VARCHAR(100),
   "imageUrl"  VARCHAR(500),
   "isActive"  BOOLEAN      NOT NULL DEFAULT TRUE,
+  "deletedAt" TIMESTAMP,
   "createdAt" TIMESTAMP    NOT NULL DEFAULT NOW(),
   "updatedAt" TIMESTAMP    NOT NULL DEFAULT NOW(),
 
@@ -120,6 +121,7 @@ CREATE TABLE products (
 CREATE INDEX idx_products_sku      ON products (sku);
 CREATE INDEX idx_products_category ON products (category);
 CREATE INDEX idx_products_isActive ON products ("isActive");
+CREATE INDEX idx_products_deletedAt ON products ("deletedAt");
 
 -- ─────────────────────────────────────────────
 -- PRODUCT SIZES (Variants)

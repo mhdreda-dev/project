@@ -24,6 +24,7 @@ export class ProductsService {
     const { page, limit, search, category, isActive, brandId } = query
 
     const where = {
+      deletedAt: null,
       ...(search && {
         OR: [
           { name: { contains: search, mode: 'insensitive' as const } },
@@ -60,6 +61,7 @@ export class ProductsService {
    */
   async listAll(filters: { search?: string; category?: string; brandId?: string; isActive?: boolean }) {
     const where = {
+      deletedAt: null,
       ...(filters.search && {
         OR: [
           { name: { contains: filters.search, mode: 'insensitive' as const } },
@@ -84,8 +86,8 @@ export class ProductsService {
   }
 
   async findById(id: string) {
-    const p = await db.product.findUnique({
-      where: { id },
+    const p = await db.product.findFirst({
+      where: { id, deletedAt: null },
       include: {
         sizes: { orderBy: { size: 'asc' } },
         brand: { select: { id: true, name: true } },
@@ -131,7 +133,7 @@ export class ProductsService {
   }
 
   async update(id: string, input: UpdateProductInput) {
-    const product = await db.product.findUnique({ where: { id } })
+    const product = await db.product.findFirst({ where: { id, deletedAt: null } })
     if (!product) throw new Error('Product not found')
 
     if (input.sku && input.sku !== product.sku) {
@@ -190,16 +192,24 @@ export class ProductsService {
   }
 
   async delete(id: string) {
-    const product = await db.product.findUnique({ where: { id } })
+    const product = await db.product.findFirst({ where: { id, deletedAt: null } })
     if (!product) throw new Error('Product not found')
 
-    await db.product.delete({ where: { id } })
+    return db.$transaction(async (tx) => {
+      return tx.product.update({
+        where: { id },
+        data: {
+          deletedAt: new Date(),
+          isActive: false,
+        },
+      })
+    })
   }
 
   async getCategories(): Promise<string[]> {
     const result = await db.product.groupBy({
       by: ['category'],
-      where: { category: { not: null }, isActive: true },
+      where: { category: { not: null }, isActive: true, deletedAt: null },
       orderBy: { category: 'asc' },
     })
     return result.map((r) => r.category!).filter(Boolean)
@@ -207,10 +217,10 @@ export class ProductsService {
 
   async getDashboardStats() {
     const [totalProducts, totalSizes, recentMovements, lowStockCount] = await Promise.all([
-      db.product.count({ where: { isActive: true } }),
+      db.product.count({ where: { isActive: true, deletedAt: null } }),
       db.productSize.aggregate({
         _sum: { quantity: true },
-        where: { product: { isActive: true } },
+        where: { product: { isActive: true, deletedAt: null } },
       }),
       db.stockMovement.count({
         where: {
@@ -225,7 +235,7 @@ export class ProductsService {
           SELECT p.id, COALESCE(SUM(ps.quantity), 0) AS qty, p."lowStockThreshold" AS threshold
           FROM products p
           LEFT JOIN product_sizes ps ON ps."productId" = p.id
-          WHERE p."isActive" = true
+          WHERE p."isActive" = true AND p."deletedAt" IS NULL
           GROUP BY p.id
         ) agg
         WHERE agg.qty <= agg.threshold
@@ -236,7 +246,7 @@ export class ProductsService {
       SELECT COALESCE(SUM(ps.quantity * p.price), 0)::text AS total
       FROM product_sizes ps
       JOIN products p ON p.id = ps."productId"
-      WHERE p."isActive" = true
+      WHERE p."isActive" = true AND p."deletedAt" IS NULL
     `
 
     return {

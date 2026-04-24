@@ -13,7 +13,7 @@ export class StockService {
       })
 
       if (!size) throw new Error('Product size not found')
-      if (!size.product.isActive) throw new Error('Product is not active')
+      if (!size.product.isActive || size.product.deletedAt) throw new Error('Product is not active')
 
       let newQty: number
 
@@ -96,7 +96,7 @@ export class StockService {
 
   async getLowStock() {
     const products = await db.product.findMany({
-      where: { isActive: true },
+      where: { isActive: true, deletedAt: null },
       include: {
         sizes: true,
       },

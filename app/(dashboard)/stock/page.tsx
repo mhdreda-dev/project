@@ -19,7 +19,7 @@ export default async function StockPage({
       productId: searchParams.productId,
     }),
     db.product.findMany({
-      where: { isActive: true },
+      where: { isActive: true, deletedAt: null },
       select: { id: true, name: true, sku: true, sizes: { select: { id: true, size: true, quantity: true, minQuantity: true } } },
       orderBy: { name: 'asc' },
     }),

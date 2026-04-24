@@ -50,7 +50,7 @@ export class ReportsService {
           SELECT p.id, COALESCE(SUM(ps.quantity), 0) AS qty, p."lowStockThreshold" AS threshold
           FROM products p
           LEFT JOIN product_sizes ps ON ps."productId" = p.id
-          WHERE p."isActive" = true
+          WHERE p."isActive" = true AND p."deletedAt" IS NULL
           GROUP BY p.id
         ) agg
         WHERE agg.qty <= agg.threshold
@@ -59,7 +59,7 @@ export class ReportsService {
         SELECT COALESCE(SUM(ps.quantity * p.price), 0)::text AS total
         FROM product_sizes ps
         JOIN products p ON p.id = ps."productId"
-        WHERE p."isActive" = true
+        WHERE p."isActive" = true AND p."deletedAt" IS NULL
       `,
     ])
 
@@ -146,7 +146,7 @@ export class ReportsService {
   async getLowStockProducts() {
     // Low stock = product whose total quantity across sizes <= product.lowStockThreshold
     const products = await db.product.findMany({
-      where: { isActive: true },
+      where: { isActive: true, deletedAt: null },
       include: {
         sizes: { select: { id: true, size: true, quantity: true } },
         brand: { select: { name: true } },

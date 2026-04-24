@@ -59,7 +59,7 @@ export async function DELETE(req: NextRequest, { params }: Params) {
   if (session.user.role !== 'ADMIN') return apiError('Forbidden', 403)
 
   try {
-    await productsService.delete(params.id)
+    const product = await productsService.delete(params.id)
 
     await logActivity({
       userId: session.user.id,
@@ -67,11 +67,15 @@ export async function DELETE(req: NextRequest, { params }: Params) {
       entity: 'product',
       entityId: params.id,
       ipAddress: getClientIp(req),
+      oldValues: { name: product.name, sku: product.sku },
+      newValues: { deletedAt: product.deletedAt, isActive: product.isActive },
     })
 
-    return apiSuccess({ deleted: true })
+    return apiSuccess({ archived: true })
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Failed to delete product'
-    return apiError(message, 400)
+    if (error instanceof Error && error.message === 'Product not found') {
+      return apiError('Product not found', 404)
+    }
+    return apiError('Unable to archive product. Please try again.', 400)
   }
 }

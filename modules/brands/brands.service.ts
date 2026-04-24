@@ -28,7 +28,7 @@ export class BrandsService {
     const [brands, total] = await Promise.all([
       db.brand.findMany({
         where,
-        include: { _count: { select: { products: true } } },
+        include: { _count: { select: { products: { where: { deletedAt: null } } } } },
         orderBy: { name: 'asc' },
         ...paginate(page, limit),
       }),
@@ -50,8 +50,9 @@ export class BrandsService {
     return db.brand.findUnique({
       where: { id },
       include: {
-        _count: { select: { products: true } },
+        _count: { select: { products: { where: { deletedAt: null } } } },
         products: {
+          where: { deletedAt: null },
           take: 10,
           select: { id: true, name: true, sku: true, imageUrl: true, isActive: true },
           orderBy: { name: 'asc' },
@@ -103,7 +104,7 @@ export class BrandsService {
         ...(input.description !== undefined && { description: input.description || null }),
         ...(input.isActive !== undefined && { isActive: input.isActive }),
       },
-      include: { _count: { select: { products: true } } },
+      include: { _count: { select: { products: { where: { deletedAt: null } } } } },
     })
   }
 

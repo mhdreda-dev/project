@@ -267,16 +267,16 @@ export function ProductsClient({ initialProducts, meta: initialMeta, brands, isA
   }
 
   async function handleDelete(product: Product) {
-    if (!confirm(t('products.confirmDelete', { name: product.name }))) return
+    if (!confirm(t('products.confirmArchive', { name: product.name }))) return
     setDeleting(product.id)
     try {
       const res = await fetch(`/api/products/${product.id}`, { method: 'DELETE' })
       const json = await res.json()
-      if (!res.ok) throw new Error(json.error)
-      toast({ title: t('products.toast.deleted') })
+      if (!res.ok) throw new Error(json.error || t('products.toast.cannotArchive'))
+      toast({ title: t('products.toast.archived') })
       applyFilters()
-    } catch (e) {
-      toast({ title: t('common.errorTitle'), description: e instanceof Error ? e.message : t('products.toast.cannotDelete'), variant: 'destructive' })
+    } catch {
+      toast({ title: t('common.errorTitle'), description: t('products.toast.cannotArchive'), variant: 'destructive' })
     } finally {
       setDeleting(null)
     }
@@ -408,7 +408,7 @@ export function ProductsClient({ initialProducts, meta: initialMeta, brands, isA
                         className="h-7 w-7 rounded-lg bg-white/90 backdrop-blur-sm flex items-center justify-center text-slate-600 hover:text-red-600 shadow-sm"
                         onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleDelete(product) }}
                         disabled={deleting === product.id}
-                        aria-label={`Delete ${product.name}`}
+                        aria-label={`Archive ${product.name}`}
                       >
                         {deleting === product.id
                           ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
