@@ -1,8 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import Image from 'next/image'
-import { Plus, Search, Pencil, Trash2, Tag, Package, MoreVertical } from 'lucide-react'
+import { Plus, Search, Pencil, Trash2, Tag, Package } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -10,6 +9,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Label } from '@/components/ui/label'
 import { PageHeader } from '@/components/ui/page-header'
 import { EmptyState } from '@/components/ui/empty-state'
+import { BrandLogoUpload } from '@/components/ui/brand-logo-upload'
+import { SafeImage } from '@/components/ui/safe-image'
 import { useToast } from '@/hooks/use-toast'
 import { useRouter } from 'next/navigation'
 import { useI18n } from '@/components/i18n-provider'
@@ -23,6 +24,11 @@ type Brand = {
   isActive: boolean
   createdAt: string
   _count: { products: number }
+}
+
+function brandInitials(name: string) {
+  const parts = name.trim().split(/\s+/).filter(Boolean)
+  return parts.slice(0, 2).map((part) => part[0]?.toUpperCase()).join('') || 'BR'
 }
 
 interface BrandsClientProps {
@@ -146,11 +152,20 @@ export function BrandsClient({ initialBrands, isAdmin }: BrandsClientProps) {
               className="bg-white rounded-2xl border border-slate-100 p-5 shadow-sm hover:shadow-md transition-all group"
             >
               <div className="flex items-start justify-between mb-3">
-                <div className="h-12 w-12 rounded-xl border border-slate-100 bg-slate-50 flex items-center justify-center overflow-hidden">
+                <div className="h-12 w-12 rounded-xl border border-slate-100 bg-white flex items-center justify-center overflow-hidden">
                   {brand.logoUrl ? (
-                    <Image src={brand.logoUrl} alt={brand.name} width={48} height={48} className="object-contain" />
+                    <SafeImage
+                      src={brand.logoUrl}
+                      alt={brand.name}
+                      width={48}
+                      height={48}
+                      className="h-full w-full object-contain p-1.5"
+                      fallbackClassName="bg-slate-50"
+                    />
                   ) : (
-                    <Tag className="h-5 w-5 text-slate-400" />
+                    <span className="flex h-full w-full items-center justify-center bg-slate-50 text-sm font-semibold text-slate-500">
+                      {brandInitials(brand.name)}
+                    </span>
                   )}
                 </div>
                 {isAdmin && (
@@ -199,7 +214,7 @@ export function BrandsClient({ initialBrands, isAdmin }: BrandsClientProps) {
 
       {/* Create / Edit Modal */}
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <DialogContent className="sm:max-w-md rounded-2xl">
+        <DialogContent className="sm:max-w-lg rounded-2xl">
           <DialogHeader>
             <DialogTitle>{editing ? t('brands.dialog.editTitle') : t('brands.dialog.newTitle')}</DialogTitle>
           </DialogHeader>
@@ -226,13 +241,12 @@ export function BrandsClient({ initialBrands, isAdmin }: BrandsClientProps) {
               />
             </div>
             <div>
-              <Label htmlFor="logoUrl">{t('common.labels.logoUrl')}</Label>
-              <Input
-                id="logoUrl"
+              <Label>{t('brandLogo.label')}</Label>
+              <BrandLogoUpload
                 value={form.logoUrl}
-                onChange={(e) => setForm((f) => ({ ...f, logoUrl: e.target.value }))}
-                placeholder={t('common.placeholders.logoUrl')}
-                className="mt-1 rounded-xl"
+                brandName={form.name}
+                disabled={loading}
+                onChange={(logoUrl) => setForm((f) => ({ ...f, logoUrl }))}
               />
             </div>
             <div className="flex gap-3 pt-2">
