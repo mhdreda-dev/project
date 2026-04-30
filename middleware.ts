@@ -6,7 +6,7 @@ import { NextResponse } from 'next/server'
 // Prisma + bcrypt which are Node.js-only and crash the Edge Runtime).
 const { auth } = NextAuth(authConfig)
 
-const PUBLIC_PATHS = ['/login', '/register', '/api/auth']
+const PUBLIC_PATHS = ['/login', '/register', '/api/auth', '/api/ai/sales-agent', '/api/whatsapp/webhook']
 const ADMIN_ONLY_PATHS = ['/admin', '/api/users', '/api/logs']
 
 export default auth(function middleware(req) {
