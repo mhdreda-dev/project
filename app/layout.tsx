@@ -4,6 +4,7 @@ import './globals.css'
 import { Toaster } from '@/components/ui/toaster'
 import { Providers } from '@/components/providers'
 import { getServerI18n } from '@/lib/i18n/server'
+import { ChatButton } from '@/components/ai/chat-button'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -20,6 +21,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className={inter.className}>
         <Providers initialLocale={locale}>
           {children}
+          <ChatButton />
           <Toaster />
         </Providers>
       </body>

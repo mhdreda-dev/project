@@ -1,6 +1,7 @@
 import { db } from '@/lib/db'
 import { paginate, paginationMeta } from '@/lib/utils'
 import { StockMovementInput, StockQuery } from '@/lib/validations/stock'
+import { rewardsService } from '@/modules/rewards/rewards.service'
 import { MovementType } from '@prisma/client'
 
 export class StockService {
@@ -58,6 +59,10 @@ export class StockService {
           user: { select: { name: true } },
         },
       })
+
+      if (input.type === 'OUT') {
+        await rewardsService.createProductSoldEvent(tx, userId, size.productId, input.quantity)
+      }
 
       return movement
     })
@@ -131,22 +136,29 @@ export class StockService {
     const movements = productId
       ? await db.$queryRaw<Array<{ date: string; in_qty: bigint | number; out_qty: bigint | number }>>`
           SELECT
-            DATE("createdAt")::text AS date,
+            DATE(sm."createdAt")::text AS date,
             COALESCE(SUM(CASE WHEN type = 'IN' THEN quantity ELSE 0 END), 0)::int AS in_qty,
             COALESCE(SUM(CASE WHEN type = 'OUT' THEN quantity ELSE 0 END), 0)::int AS out_qty
-          FROM stock_movements
-          WHERE "createdAt" >= ${since} AND "productId" = ${productId}
-          GROUP BY DATE("createdAt")
+          FROM stock_movements sm
+          JOIN products p ON p.id = sm."productId"
+          WHERE sm."createdAt" >= ${since}
+            AND sm."productId" = ${productId}
+            AND p."isActive" = true
+            AND p."deletedAt" IS NULL
+          GROUP BY DATE(sm."createdAt")
           ORDER BY date ASC
         `
       : await db.$queryRaw<Array<{ date: string; in_qty: bigint | number; out_qty: bigint | number }>>`
           SELECT
-            DATE("createdAt")::text AS date,
+            DATE(sm."createdAt")::text AS date,
             COALESCE(SUM(CASE WHEN type = 'IN' THEN quantity ELSE 0 END), 0)::int AS in_qty,
             COALESCE(SUM(CASE WHEN type = 'OUT' THEN quantity ELSE 0 END), 0)::int AS out_qty
-          FROM stock_movements
-          WHERE "createdAt" >= ${since}
-          GROUP BY DATE("createdAt")
+          FROM stock_movements sm
+          JOIN products p ON p.id = sm."productId"
+          WHERE sm."createdAt" >= ${since}
+            AND p."isActive" = true
+            AND p."deletedAt" IS NULL
+          GROUP BY DATE(sm."createdAt")
           ORDER BY date ASC
         `
 

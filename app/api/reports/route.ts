@@ -14,15 +14,24 @@ export async function GET(req: NextRequest) {
     const to = searchParams.get('to') ? new Date(searchParams.get('to')!) : undefined
     const query = { period, from, to }
 
-    const [summary, topProducts, topBrands, timeline, lowStock] = await Promise.all([
+    const [summary, topProducts, brandDistribution, timeline, lowStock, recentMovements] = await Promise.all([
       reportsService.getSummary(query),
-      reportsService.getTopProducts(query),
-      reportsService.getTopBrands(query),
+      reportsService.getTopProductsByValue(),
+      reportsService.getBrandDistribution(),
       reportsService.getMovementTimeline(query),
       reportsService.getLowStockProducts(),
+      reportsService.getRecentStockMovements(),
     ])
 
-    return apiSuccess({ summary, topProducts, topBrands, timeline, lowStock })
+    return apiSuccess({
+      summary,
+      topProducts,
+      brandDistribution,
+      topBrands: brandDistribution,
+      timeline,
+      lowStock,
+      recentMovements,
+    })
   } catch (e) {
     return apiError(e instanceof Error ? e.message : 'Failed to generate report')
   }

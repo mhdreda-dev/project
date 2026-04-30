@@ -15,6 +15,7 @@ import {
   AlertTriangle,
   Tag,
   BarChart3,
+  Bot,
   ChevronRight,
   Menu,
 } from 'lucide-react'
@@ -45,6 +46,7 @@ function NavContent({ onClose }: { onClose?: () => void }) {
       items: [
         { href: '/dashboard', labelKey: 'shell.sidebar.dashboard', icon: LayoutDashboard },
         { href: '/reports', labelKey: 'shell.sidebar.reports', icon: BarChart3 },
+        { href: '/ai-requests', labelKey: 'shell.sidebar.aiRequests', icon: Bot, adminOnly: true },
       ],
     },
     {

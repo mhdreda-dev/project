@@ -1,6 +1,7 @@
 import { auth } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import { usersService } from '@/modules/users/users.service'
+import { rewardsService } from '@/modules/rewards/rewards.service'
 import { UsersClient } from './users-client'
 
 export default async function UsersPage({
@@ -14,7 +15,10 @@ export default async function UsersPage({
   const page = Number(searchParams.page ?? 1)
   const search = searchParams.search
 
-  const { users, meta } = await usersService.list({ page, limit: 20, search })
+  const [{ users, meta }, rewardLeaderboard] = await Promise.all([
+    usersService.list({ page, limit: 20, search }),
+    rewardsService.getLeaderboard(),
+  ])
 
-  return <UsersClient users={users} meta={meta} currentUserId={session.user.id} />
+  return <UsersClient users={users} meta={meta} currentUserId={session.user.id} rewardLeaderboard={rewardLeaderboard} />
 }

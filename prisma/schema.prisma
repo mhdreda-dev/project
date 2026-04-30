@@ -20,6 +20,7 @@ model User {
   updatedAt      DateTime        @updatedAt
   accounts       Account[]
   activityLogs   ActivityLog[]
+  rewardEvents   RewardEvent[]
   sessions       Session[]
   stockMovements StockMovement[]
 
@@ -102,6 +103,7 @@ model Product {
   updatedAt         DateTime        @updatedAt
   brand             Brand?          @relation(fields: [brandId], references: [id])
   aiConversations   AiConversation[]
+  rewardEvents      RewardEvent[]
   sizes             ProductSize[]
   movements         StockMovement[]
 
@@ -177,6 +179,24 @@ model ActivityLog {
   @@map("activity_logs")
 }
 
+model RewardEvent {
+  id              String           @id @default(cuid())
+  userId          String
+  productId       String?
+  actionType      RewardActionType
+  quantity        Int
+  rewardAmountMAD Decimal          @db.Decimal(10, 2)
+  createdAt       DateTime         @default(now())
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product         Product?         @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([productId])
+  @@index([actionType])
+  @@index([createdAt])
+  @@map("reward_events")
+}
+
 model AiConversation {
   id                String   @id @default(cuid())
   message           String   @db.Text
@@ -250,6 +270,11 @@ enum ActivityAction {
   STOCK_IN
   STOCK_OUT
   STOCK_ADJUST
+}
+
+enum RewardActionType {
+  PRODUCT_ADDED
+  PRODUCT_SOLD
 }
 
 enum LeadStatus {

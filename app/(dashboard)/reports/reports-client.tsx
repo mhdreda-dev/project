@@ -5,18 +5,16 @@ import {
   BarChart3,
   Package,
   TrendingUp,
-  TrendingDown,
   AlertTriangle,
   DollarSign,
   ArrowUpCircle,
   ArrowDownCircle,
   Activity,
 } from 'lucide-react'
-import { Button } from '@/components/ui/button'
 import { StatCard } from '@/components/ui/stat-card'
 import { PageHeader } from '@/components/ui/page-header'
 import { Badge } from '@/components/ui/badge'
-import { formatCurrency } from '@/lib/utils'
+import { formatCurrency, formatDate } from '@/lib/utils'
 import { useI18n } from '@/components/i18n-provider'
 import {
   AreaChart,
@@ -26,8 +24,6 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  BarChart,
-  Bar,
   Legend,
 } from 'recharts'
 
@@ -64,8 +60,9 @@ export function ReportsClient() {
   const summary = data?.summary
   const timeline = data?.timeline ?? []
   const topProducts = data?.topProducts ?? []
-  const topBrands = data?.topBrands ?? []
+  const brandDistribution = data?.brandDistribution ?? data?.topBrands ?? []
   const lowStock = data?.lowStock ?? []
+  const recentMovements = data?.recentMovements ?? []
 
   return (
     <div>
@@ -102,8 +99,53 @@ export function ReportsClient() {
         </div>
       ) : (
         <>
-          {/* Summary stats */}
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 mb-6">
+          {/* Inventory summary */}
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 mb-6">
+            <StatCard
+              title={t('reports.stats.totalProducts')}
+              value={(summary?.totalProducts ?? 0).toLocaleString()}
+              description={t('dashboard.stats.activeProducts')}
+              icon={Package}
+              color="blue"
+            />
+            <StatCard
+              title={t('reports.stats.totalUnits')}
+              value={(summary?.totalUnits ?? 0).toLocaleString()}
+              description={t('dashboard.stats.unitsAcross')}
+              icon={Activity}
+              color="green"
+            />
+            <StatCard
+              title={t('reports.stats.retailValueMad')}
+              value={formatCurrency(summary?.retailValue ?? summary?.inventoryValue ?? 0)}
+              description={t('reports.stats.totalRetailValue')}
+              icon={DollarSign}
+              color="purple"
+            />
+            <StatCard
+              title={t('reports.stats.costValueMad')}
+              value={formatCurrency(summary?.costValue ?? 0)}
+              description={t('reports.stats.totalCostValue')}
+              icon={BarChart3}
+              color="amber"
+            />
+            <StatCard
+              title={t('reports.stats.expectedProfit')}
+              value={formatCurrency(summary?.expectedProfit ?? 0)}
+              description={t('reports.stats.retailMinusCost')}
+              icon={TrendingUp}
+              color="green"
+            />
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 mb-6">
+            <StatCard
+              title={t('reports.stats.lowStockItems')}
+              value={summary?.lowStockCount ?? 0}
+              description={t('reports.stats.needRestocking')}
+              icon={AlertTriangle}
+              color="red"
+            />
             <StatCard
               title={t('reports.stats.stockIn')}
               value={(summary?.totalStockIn ?? 0).toLocaleString()}
@@ -117,20 +159,6 @@ export function ReportsClient() {
               description={t('reports.stats.unitsDispatched')}
               icon={ArrowDownCircle}
               color="blue"
-            />
-            <StatCard
-              title={t('reports.stats.inventoryValueMad')}
-              value={formatCurrency(summary?.inventoryValue ?? 0)}
-              description={t('reports.stats.totalStockValue')}
-              icon={DollarSign}
-              color="purple"
-            />
-            <StatCard
-              title={t('reports.stats.lowStockItems')}
-              value={summary?.lowStockCount ?? 0}
-              description={t('reports.stats.needRestocking')}
-              icon={AlertTriangle}
-              color="red"
             />
           </div>
 
@@ -165,7 +193,7 @@ export function ReportsClient() {
           )}
 
           <div className="grid gap-6 lg:grid-cols-2 mb-6">
-            {/* Top products */}
+            {/* Top products by inventory value */}
             <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-sm">
               <h3 className="font-semibold text-slate-900 mb-4">{t('reports.topProducts.title')}</h3>
               {topProducts.length === 0 ? (
@@ -179,30 +207,31 @@ export function ReportsClient() {
                         <p className="text-sm font-medium text-slate-800 truncate">{item.product?.name ?? '—'}</p>
                         <p className="text-xs text-slate-400">{item.product?.brand?.name ?? t('common.labels.noBrand')} · {item.product?.sku}</p>
                       </div>
-                      <Badge variant="secondary" className="text-xs tabular-nums shrink-0">
-                        {t('common.misc.units', { count: item.totalOut })}
-                      </Badge>
+                      <div className="text-right shrink-0">
+                        <p className="text-sm font-semibold text-slate-800 tabular-nums">{formatCurrency(item.retailValue ?? 0)}</p>
+                        <p className="text-xs text-slate-400">{t('common.misc.units', { count: item.totalUnits ?? 0 })}</p>
+                      </div>
                     </div>
                   ))}
                 </div>
               )}
             </div>
 
-            {/* Top brands */}
+            {/* Brand distribution */}
             <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-sm">
               <h3 className="font-semibold text-slate-900 mb-4">{t('reports.topBrands.title')}</h3>
-              {topBrands.length === 0 ? (
+              {brandDistribution.length === 0 ? (
                 <p className="text-sm text-slate-400 text-center py-8">{t('reports.emptyPeriod')}</p>
               ) : (
                 <div className="space-y-3">
-                  {topBrands.map((brand: any, i: number) => {
-                    const max = topBrands[0]?.total ?? 1
-                    const pct = Math.round((brand.total / max) * 100)
+                  {brandDistribution.map((brand: any, i: number) => {
+                    const max = brandDistribution[0]?.retailValue ?? 1
+                    const pct = Math.round(((brand.retailValue ?? 0) / max) * 100)
                     return (
                       <div key={i} className="space-y-1">
                         <div className="flex items-center justify-between text-sm">
                           <span className="font-medium text-slate-800">{brand.name}</span>
-                          <span className="text-slate-500 tabular-nums">{t('common.misc.units', { count: brand.total })}</span>
+                          <span className="text-slate-500 tabular-nums">{formatCurrency(brand.retailValue ?? 0)}</span>
                         </div>
                         <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
                           <div
@@ -210,6 +239,9 @@ export function ReportsClient() {
                             style={{ width: `${pct}%` }}
                           />
                         </div>
+                        <p className="text-xs text-slate-400">
+                          {t('common.misc.units', { count: brand.totalUnits ?? 0 })} · {brand.productCount ?? 0} {t('reports.brandDistribution.products')}
+                        </p>
                       </div>
                     )
                   })}
@@ -242,9 +274,9 @@ export function ReportsClient() {
                       <tr key={item.id} className="border-b border-slate-50 hover:bg-slate-50/50">
                         <td className="py-2.5 px-3 font-medium text-slate-800">{item.product.name}</td>
                         <td className="py-2.5 px-3 text-slate-500">{item.product.brand?.name ?? '—'}</td>
-                        <td className="py-2.5 px-3 text-slate-500">{item.size}</td>
+                        <td className="py-2.5 px-3 text-slate-500">{item.size ?? 'All'}</td>
                         <td className="py-2.5 px-3 text-right">
-                          <Badge variant="destructive" className="text-xs tabular-nums">{item.quantity}</Badge>
+                          <Badge variant="destructive" className="text-xs tabular-nums">{item.totalQty ?? item.quantity}</Badge>
                         </td>
                         <td className="py-2.5 px-3 text-right text-slate-500 tabular-nums">{item.minQuantity}</td>
                       </tr>
@@ -254,6 +286,42 @@ export function ReportsClient() {
               </div>
             </div>
           )}
+
+          {/* Recent movements */}
+          <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-sm mt-6">
+            <div className="flex items-center gap-2 mb-4">
+              <Activity className="h-4 w-4 text-blue-500" />
+              <h3 className="font-semibold text-slate-900">{t('reports.recentMovements.title')}</h3>
+            </div>
+            {recentMovements.length === 0 ? (
+              <p className="text-sm text-slate-400 text-center py-8">{t('reports.emptyPeriod')}</p>
+            ) : (
+              <div className="space-y-0 divide-y divide-slate-50">
+                {recentMovements.map((m: any) => (
+                  <div key={m.id} className="py-3 flex items-center gap-4">
+                    <div className="shrink-0">
+                      {m.type === 'IN' ? (
+                        <ArrowUpCircle className="h-4 w-4 text-green-500" />
+                      ) : m.type === 'OUT' ? (
+                        <ArrowDownCircle className="h-4 w-4 text-red-500" />
+                      ) : (
+                        <Activity className="h-4 w-4 text-blue-500" />
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium text-slate-800 truncate">
+                        {m.product.name} · {m.productSize.size}
+                      </p>
+                      <p className="text-xs text-slate-400">{m.user.name} · {formatDate(m.createdAt)}</p>
+                    </div>
+                    <Badge variant={m.type === 'OUT' ? 'destructive' : m.type === 'IN' ? 'success' : 'info'} className="text-xs tabular-nums shrink-0">
+                      {m.type === 'OUT' ? '-' : m.type === 'IN' ? '+' : '='}{m.quantity}
+                    </Badge>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </>
       )}
     </div>

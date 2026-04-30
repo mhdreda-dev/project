@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
     const parsed = createProductSchema.safeParse(body)
     if (!parsed.success) return apiError(parsed.error.errors[0].message, 422)
 
-    const product = await productsService.create(parsed.data)
+    const product = await productsService.create(parsed.data, session.user.id)
 
     await logActivity({
       userId: session.user.id,

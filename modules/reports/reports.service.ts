@@ -1,5 +1,5 @@
 import { db } from '@/lib/db'
-import { MovementType } from '@prisma/client'
+import { MovementType, Prisma } from '@prisma/client'
 
 export type ReportPeriod = 'day' | 'week' | 'month' | 'year' | 'custom'
 
@@ -8,6 +8,8 @@ export interface ReportQuery {
   from?: Date
   to?: Date
 }
+
+const ACTIVE_PRODUCT_SQL = Prisma.sql`p."isActive" = true AND p."deletedAt" IS NULL`
 
 function getDateRange(query: ReportQuery): { from: Date; to: Date } {
   const now = new Date()
@@ -35,98 +37,150 @@ export class ReportsService {
     const { from, to } = getDateRange(query)
     const dateFilter = { gte: from, lte: to }
 
-    const [movements, totalIn, totalOut, lowStockCount, inventoryValue] = await Promise.all([
-      db.stockMovement.count({ where: { createdAt: dateFilter } }),
-      db.stockMovement.aggregate({
+    const [totalProducts, totalUnits, movements, totalIn, totalOut, lowStockCount, inventoryValue] = await Promise.all([
+      db.product.count({ where: { isActive: true, deletedAt: null } }),
+      db.productSize.aggregate({
         _sum: { quantity: true },
-        where: { type: MovementType.IN, createdAt: dateFilter },
+        where: { product: { isActive: true, deletedAt: null } },
+      }),
+      db.stockMovement.count({
+        where: { createdAt: dateFilter, product: { isActive: true, deletedAt: null } },
       }),
       db.stockMovement.aggregate({
         _sum: { quantity: true },
-        where: { type: MovementType.OUT, createdAt: dateFilter },
+        where: { type: MovementType.IN, createdAt: dateFilter, product: { isActive: true, deletedAt: null } },
+      }),
+      db.stockMovement.aggregate({
+        _sum: { quantity: true },
+        where: { type: MovementType.OUT, createdAt: dateFilter, product: { isActive: true, deletedAt: null } },
       }),
       db.$queryRaw<[{ count: bigint }]>`
         SELECT COUNT(*)::bigint AS count FROM (
           SELECT p.id, COALESCE(SUM(ps.quantity), 0) AS qty, p."lowStockThreshold" AS threshold
           FROM products p
           LEFT JOIN product_sizes ps ON ps."productId" = p.id
-          WHERE p."isActive" = true AND p."deletedAt" IS NULL
+          WHERE ${ACTIVE_PRODUCT_SQL}
           GROUP BY p.id
         ) agg
         WHERE agg.qty <= agg.threshold
       `,
-      db.$queryRaw<[{ total: string }]>`
-        SELECT COALESCE(SUM(ps.quantity * p.price), 0)::text AS total
+      db.$queryRaw<[{ retail_value: string; cost_value: string; expected_profit: string }]>`
+        SELECT
+          COALESCE(SUM(ps.quantity * COALESCE(ps.price, p.price, 0)), 0)::text AS retail_value,
+          COALESCE(SUM(ps.quantity * COALESCE(ps."costPrice", p."costPrice", 0)), 0)::text AS cost_value,
+          (
+            COALESCE(SUM(ps.quantity * COALESCE(ps.price, p.price, 0)), 0)
+            - COALESCE(SUM(ps.quantity * COALESCE(ps."costPrice", p."costPrice", 0)), 0)
+          )::text AS expected_profit
         FROM product_sizes ps
         JOIN products p ON p.id = ps."productId"
-        WHERE p."isActive" = true AND p."deletedAt" IS NULL
+        WHERE ${ACTIVE_PRODUCT_SQL}
       `,
     ])
 
+    const values = inventoryValue[0]
+
     return {
       period: { from, to },
+      totalProducts,
+      totalUnits: totalUnits._sum.quantity ?? 0,
       totalMovements: movements,
       totalStockIn: totalIn._sum.quantity ?? 0,
       totalStockOut: totalOut._sum.quantity ?? 0,
       lowStockCount: Number(lowStockCount[0]?.count ?? 0),
-      inventoryValue: parseFloat(inventoryValue[0]?.total ?? '0'),
+      inventoryValue: parseFloat(values?.retail_value ?? '0'),
+      retailValue: parseFloat(values?.retail_value ?? '0'),
+      costValue: parseFloat(values?.cost_value ?? '0'),
+      expectedProfit: parseFloat(values?.expected_profit ?? '0'),
     }
   }
 
-  async getTopProducts(query: ReportQuery, limit = 10) {
-    const { from, to } = getDateRange(query)
+  async getTopProductsByValue(limit = 10) {
+    const rows = await db.$queryRaw<Array<{
+      id: string
+      name: string
+      sku: string
+      imageUrl: string | null
+      brandName: string | null
+      totalUnits: number
+      retailValue: string
+      costValue: string
+      expectedProfit: string
+    }>>`
+      SELECT
+        p.id,
+        p.name,
+        p.sku,
+        p."imageUrl",
+        b.name AS "brandName",
+        COALESCE(SUM(ps.quantity), 0)::int AS "totalUnits",
+        COALESCE(SUM(ps.quantity * COALESCE(ps.price, p.price, 0)), 0)::text AS "retailValue",
+        COALESCE(SUM(ps.quantity * COALESCE(ps."costPrice", p."costPrice", 0)), 0)::text AS "costValue",
+        (
+          COALESCE(SUM(ps.quantity * COALESCE(ps.price, p.price, 0)), 0)
+          - COALESCE(SUM(ps.quantity * COALESCE(ps."costPrice", p."costPrice", 0)), 0)
+        )::text AS "expectedProfit"
+      FROM products p
+      LEFT JOIN product_sizes ps ON ps."productId" = p.id
+      LEFT JOIN brands b ON b.id = p."brandId"
+      WHERE ${ACTIVE_PRODUCT_SQL}
+      GROUP BY p.id, b.name
+      ORDER BY COALESCE(SUM(ps.quantity * COALESCE(ps.price, p.price, 0)), 0) DESC, p.name ASC
+      LIMIT ${limit}
+    `
 
-    const movements = await db.stockMovement.groupBy({
-      by: ['productId'],
-      where: { type: MovementType.OUT, createdAt: { gte: from, lte: to } },
-      _sum: { quantity: true },
-      orderBy: { _sum: { quantity: 'desc' } },
-      take: limit,
-    })
-
-    const productIds = movements.map((m) => m.productId)
-    const products = await db.product.findMany({
-      where: { id: { in: productIds } },
-      select: { id: true, name: true, sku: true, imageUrl: true, brand: { select: { name: true } } },
-    })
-
-    return movements.map((m) => ({
-      product: products.find((p) => p.id === m.productId),
-      totalOut: m._sum.quantity ?? 0,
+    return rows.map((row) => ({
+      product: {
+        id: row.id,
+        name: row.name,
+        sku: row.sku,
+        imageUrl: row.imageUrl,
+        brand: row.brandName ? { name: row.brandName } : null,
+      },
+      totalUnits: row.totalUnits,
+      retailValue: parseFloat(row.retailValue),
+      costValue: parseFloat(row.costValue),
+      expectedProfit: parseFloat(row.expectedProfit),
     }))
   }
 
-  async getTopBrands(query: ReportQuery, limit = 8) {
-    const { from, to } = getDateRange(query)
+  async getBrandDistribution(limit = 8) {
+    const rows = await db.$queryRaw<Array<{
+      id: string | null
+      name: string
+      productCount: number
+      totalUnits: number
+      retailValue: string
+    }>>`
+      SELECT
+        b.id,
+        COALESCE(b.name, 'No Brand') AS name,
+        COUNT(DISTINCT p.id)::int AS "productCount",
+        COALESCE(SUM(ps.quantity), 0)::int AS "totalUnits",
+        COALESCE(SUM(ps.quantity * COALESCE(ps.price, p.price, 0)), 0)::text AS "retailValue"
+      FROM products p
+      LEFT JOIN brands b ON b.id = p."brandId"
+      LEFT JOIN product_sizes ps ON ps."productId" = p.id
+      WHERE ${ACTIVE_PRODUCT_SQL}
+      GROUP BY b.id, b.name
+      ORDER BY COALESCE(SUM(ps.quantity * COALESCE(ps.price, p.price, 0)), 0) DESC, name ASC
+      LIMIT ${limit}
+    `
 
-    const movements = await db.stockMovement.findMany({
-      where: { type: MovementType.OUT, createdAt: { gte: from, lte: to } },
-      select: {
-        quantity: true,
-        product: { select: { brand: { select: { id: true, name: true } } } },
-      },
-    })
-
-    const brandMap = new Map<string, { name: string; total: number }>()
-    for (const m of movements) {
-      const brand = m.product.brand
-      if (!brand) continue
-      const existing = brandMap.get(brand.id) ?? { name: brand.name, total: 0 }
-      existing.total += m.quantity
-      brandMap.set(brand.id, existing)
-    }
-
-    return Array.from(brandMap.entries())
-      .map(([id, data]) => ({ id, ...data }))
-      .sort((a, b) => b.total - a.total)
-      .slice(0, limit)
+    return rows.map((row) => ({
+      id: row.id,
+      name: row.name,
+      productCount: row.productCount,
+      totalUnits: row.totalUnits,
+      retailValue: parseFloat(row.retailValue),
+    }))
   }
 
   async getMovementTimeline(query: ReportQuery) {
     const { from, to } = getDateRange(query)
 
     const movements = await db.stockMovement.findMany({
-      where: { createdAt: { gte: from, lte: to } },
+      where: { createdAt: { gte: from, lte: to }, product: { isActive: true, deletedAt: null } },
       select: { type: true, quantity: true, createdAt: true },
       orderBy: { createdAt: 'asc' },
     })
@@ -144,42 +198,60 @@ export class ReportsService {
   }
 
   async getLowStockProducts() {
-    // Low stock = product whose total quantity across sizes <= product.lowStockThreshold
-    const products = await db.product.findMany({
-      where: { isActive: true, deletedAt: null },
-      include: {
-        sizes: { select: { id: true, size: true, quantity: true } },
-        brand: { select: { name: true } },
+    const rows = await db.$queryRaw<Array<{
+      id: string
+      name: string
+      sku: string
+      imageUrl: string | null
+      brandName: string | null
+      totalQty: number
+      threshold: number
+    }>>`
+      SELECT
+        p.id,
+        p.name,
+        p.sku,
+        p."imageUrl",
+        b.name AS "brandName",
+        COALESCE(SUM(ps.quantity), 0)::int AS "totalQty",
+        p."lowStockThreshold"::int AS threshold
+      FROM products p
+      LEFT JOIN product_sizes ps ON ps."productId" = p.id
+      LEFT JOIN brands b ON b.id = p."brandId"
+      WHERE ${ACTIVE_PRODUCT_SQL}
+      GROUP BY p.id, b.name
+      HAVING COALESCE(SUM(ps.quantity), 0) <= p."lowStockThreshold"
+      ORDER BY COALESCE(SUM(ps.quantity), 0) ASC, p.name ASC
+      LIMIT 20
+    `
+
+    return rows.map((row) => ({
+      id: row.id,
+      size: 'All',
+      quantity: row.totalQty,
+      minQuantity: row.threshold,
+      product: {
+        id: row.id,
+        name: row.name,
+        sku: row.sku,
+        imageUrl: row.imageUrl,
+        brand: row.brandName ? { name: row.brandName } : null,
       },
-      take: 50,
+      totalQty: row.totalQty,
+    }))
+  }
+
+  async getRecentStockMovements(limit = 10) {
+    return db.stockMovement.findMany({
+      take: limit,
+      where: { product: { isActive: true, deletedAt: null } },
+      orderBy: { createdAt: 'desc' },
+      include: {
+        product: { select: { name: true, sku: true } },
+        productSize: { select: { size: true } },
+        user: { select: { name: true } },
+      },
     })
-
-    const flagged = products
-      .map((p) => {
-        const totalQty = p.sizes.reduce((s, sz) => s + sz.quantity, 0)
-        return { product: p, totalQty }
-      })
-      .filter(({ product, totalQty }) => totalQty <= product.lowStockThreshold)
-      .sort((a, b) => a.totalQty - b.totalQty)
-      .slice(0, 20)
-
-    // Return rows shaped like the previous API (one row per low-stock size) for UI compat
-    return flagged.flatMap(({ product, totalQty }) =>
-      product.sizes.map((sz) => ({
-        id: sz.id,
-        size: sz.size,
-        quantity: sz.quantity,
-        minQuantity: product.lowStockThreshold,
-        product: {
-          id: product.id,
-          name: product.name,
-          sku: product.sku,
-          imageUrl: product.imageUrl,
-          brand: product.brand,
-        },
-        totalQty,
-      })),
-    )
   }
 }
 

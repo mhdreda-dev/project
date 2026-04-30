@@ -1,6 +1,7 @@
 import { db } from '@/lib/db'
 import { paginate, paginationMeta } from '@/lib/utils'
 import { CreateProductInput, UpdateProductInput, ProductQuery } from '@/lib/validations/product'
+import { rewardsService } from '@/modules/rewards/rewards.service'
 
 // Convert Prisma Decimal fields to plain numbers so Server Components can
 // safely pass results to Client Components (Decimal objects aren't serializable).
@@ -101,7 +102,7 @@ export class ProductsService {
     return serializeProduct(p)
   }
 
-  async create(input: CreateProductInput) {
+  async create(input: CreateProductInput, userId?: string) {
     const existingSku = await db.product.findUnique({ where: { sku: input.sku } })
     if (existingSku) throw new Error(`SKU "${input.sku}" already exists`)
 
@@ -127,6 +128,10 @@ export class ProductsService {
         },
         include: { sizes: true, brand: { select: { id: true, name: true } } },
       })
+
+      if (userId) {
+        await rewardsService.createProductAddedEvent(tx, userId, product.id)
+      }
 
       return serializeProduct(product)
     })
@@ -216,7 +221,7 @@ export class ProductsService {
   }
 
   async getDashboardStats() {
-    const [totalProducts, totalSizes, recentMovements, lowStockCount] = await Promise.all([
+    const [totalProducts, totalSizes, recentMovements, lowStockCount, inventoryValue] = await Promise.all([
       db.product.count({ where: { isActive: true, deletedAt: null } }),
       db.productSize.aggregate({
         _sum: { quantity: true },
@@ -240,21 +245,32 @@ export class ProductsService {
         ) agg
         WHERE agg.qty <= agg.threshold
       `,
+      db.$queryRaw<[{ retail_value: string; cost_value: string; expected_profit: string }]>`
+        SELECT
+          COALESCE(SUM(ps.quantity * COALESCE(ps.price, p.price, 0)), 0)::text AS retail_value,
+          COALESCE(SUM(ps.quantity * COALESCE(ps."costPrice", p."costPrice", 0)), 0)::text AS cost_value,
+          (
+            COALESCE(SUM(ps.quantity * COALESCE(ps.price, p.price, 0)), 0)
+            - COALESCE(SUM(ps.quantity * COALESCE(ps."costPrice", p."costPrice", 0)), 0)
+          )::text AS expected_profit
+        FROM product_sizes ps
+        JOIN products p ON p.id = ps."productId"
+        WHERE p."isActive" = true AND p."deletedAt" IS NULL
+      `,
     ])
 
-    const totalValue = await db.$queryRaw<[{ total: string }]>`
-      SELECT COALESCE(SUM(ps.quantity * p.price), 0)::text AS total
-      FROM product_sizes ps
-      JOIN products p ON p.id = ps."productId"
-      WHERE p."isActive" = true AND p."deletedAt" IS NULL
-    `
+    const values = inventoryValue[0]
+    const totalUnits = totalSizes._sum.quantity ?? 0
 
     return {
       totalProducts,
-      totalStock: totalSizes._sum.quantity ?? 0,
+      totalStock: totalUnits,
+      totalUnits,
       lowStockCount: Number(lowStockCount[0]?.count ?? 0),
       recentMovements,
-      totalInventoryValue: parseFloat(totalValue[0]?.total ?? '0'),
+      totalInventoryValue: parseFloat(values?.retail_value ?? '0'),
+      totalCostValue: parseFloat(values?.cost_value ?? '0'),
+      expectedProfit: parseFloat(values?.expected_profit ?? '0'),
     }
   }
 }

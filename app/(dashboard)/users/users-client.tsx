@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Users, Search, Shield, User, Loader2, Plus } from 'lucide-react'
+import { Users, Search, Shield, User, Loader2, Plus, Trophy } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { toast } from '@/hooks/use-toast'
-import { formatDate } from '@/lib/utils'
+import { formatCurrency, formatDate } from '@/lib/utils'
 import { Role } from '@prisma/client'
 import { useI18n } from '@/components/i18n-provider'
 
@@ -24,10 +24,21 @@ interface PaginationMeta {
   total: number; page: number; totalPages: number; hasNext: boolean; hasPrev: boolean
 }
 
-export function UsersClient({ users, meta, currentUserId }: {
+interface RewardLeaderboardRecord {
+  id: string
+  name: string
+  email: string
+  totalRewardsMAD: number
+  productsAddedCount: number
+  productsSoldCount: number
+  latestActivity: Date | null
+}
+
+export function UsersClient({ users, meta, currentUserId, rewardLeaderboard }: {
   users: UserRecord[]
   meta: PaginationMeta
   currentUserId: string
+  rewardLeaderboard: RewardLeaderboardRecord[]
 }) {
   const router = useRouter()
   const { t } = useI18n()
@@ -142,6 +153,44 @@ export function UsersClient({ users, meta, currentUserId }: {
         </CardContent>
       </Card>
 
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Trophy className="h-4 w-4 text-amber-500" />
+            Reward Leaderboard
+          </CardTitle>
+          <CardDescription>Employee rewards earned in MAD from products added and products sold</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {rewardLeaderboard.length === 0 ? (
+            <p className="text-sm text-center text-muted-foreground py-8">No employee reward activity yet.</p>
+          ) : (
+            <div className="divide-y">
+              {rewardLeaderboard.map((employee, index) => (
+                <div key={employee.id} className="grid gap-3 py-3 md:grid-cols-[minmax(0,1.5fr)_repeat(4,minmax(0,1fr))] md:items-center">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="h-8 w-8 rounded-full bg-amber-50 text-amber-700 flex items-center justify-center text-sm font-semibold shrink-0">
+                      {index + 1}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium truncate">{employee.name}</p>
+                      <p className="text-xs text-muted-foreground truncate">{employee.email}</p>
+                    </div>
+                  </div>
+                  <LeaderboardMetric label="Total MAD earned" value={formatCurrency(employee.totalRewardsMAD)} strong />
+                  <LeaderboardMetric label="Products added" value={employee.productsAddedCount.toLocaleString()} />
+                  <LeaderboardMetric label="Products sold" value={employee.productsSoldCount.toLocaleString()} />
+                  <LeaderboardMetric
+                    label="Latest activity"
+                    value={employee.latestActivity ? formatDate(employee.latestActivity) : 'No activity'}
+                  />
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       {meta.totalPages > 1 && (
         <div className="flex items-center justify-between">
           <p className="text-sm text-muted-foreground">{t('common.misc.pageOf', { page: meta.page, total: meta.totalPages })}</p>
@@ -157,6 +206,15 @@ export function UsersClient({ users, meta, currentUserId }: {
         onClose={() => setShowCreate(false)}
         onSuccess={() => { setShowCreate(false); router.refresh() }}
       />
+    </div>
+  )
+}
+
+function LeaderboardMetric({ label, value, strong }: { label: string; value: string; strong?: boolean }) {
+  return (
+    <div>
+      <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
+      <p className={strong ? 'text-sm font-semibold text-emerald-700' : 'text-sm font-medium'}>{value}</p>
     </div>
   )
 }
