@@ -101,6 +101,7 @@ model Product {
   createdAt         DateTime        @default(now())
   updatedAt         DateTime        @updatedAt
   brand             Brand?          @relation(fields: [brandId], references: [id])
+  aiConversations   AiConversation[]
   sizes             ProductSize[]
   movements         StockMovement[]
 
@@ -176,6 +177,59 @@ model ActivityLog {
   @@map("activity_logs")
 }
 
+model AiConversation {
+  id                String   @id @default(cuid())
+  message           String   @db.Text
+  answer            String   @db.Text
+  requestedProduct  String?
+  requestedBrand    String?
+  requestedCategory String?
+  requestedSize     String?
+  requestedColor    String?
+  matchedProductId  String?
+  isUnavailable     Boolean  @default(false)
+  ipAddress         String?
+  userAgent         String?
+  source            String   @default("website")
+  createdAt         DateTime @default(now())
+
+  matchedProduct Product? @relation(fields: [matchedProductId], references: [id], onDelete: SetNull)
+  leads          AiLead[]
+
+  @@index([createdAt])
+  @@index([requestedProduct])
+  @@index([requestedCategory])
+  @@index([requestedSize])
+  @@index([requestedColor])
+  @@index([matchedProductId])
+  @@index([isUnavailable])
+  @@map("ai_conversations")
+}
+
+model AiLead {
+  id             String     @id @default(cuid())
+  conversationId String?
+  name           String?
+  phone          String?
+  email          String?
+  message        String     @db.Text
+  productName    String?
+  size           String?
+  color          String?
+  source         String     @default("website")
+  status         LeadStatus @default(NEW)
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  conversation AiConversation? @relation(fields: [conversationId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+  @@index([status])
+  @@index([phone])
+  @@index([email])
+  @@map("ai_leads")
+}
+
 enum Role {
   ADMIN
   EMPLOYEE
@@ -196,4 +250,11 @@ enum ActivityAction {
   STOCK_IN
   STOCK_OUT
   STOCK_ADJUST
+}
+
+enum LeadStatus {
+  NEW
+  CONTACTED
+  WON
+  LOST
 }
