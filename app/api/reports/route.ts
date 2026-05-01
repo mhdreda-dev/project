@@ -7,6 +7,7 @@ export async function GET(req: NextRequest) {
   try {
     const session = await auth()
     if (!session) return apiError('Unauthorized', 401)
+    if (session.user.role !== 'ADMIN') return apiError('Forbidden', 403)
 
     const { searchParams } = req.nextUrl
     const period = (searchParams.get('period') ?? 'month') as ReportPeriod

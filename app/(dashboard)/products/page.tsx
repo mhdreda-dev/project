@@ -25,7 +25,10 @@ export default async function ProductsPage({
   let loadError: string | null = null
 
   try {
-    const result = await productsService.list({ page, limit: 12, search, category })
+    const result = await productsService.list(
+      { page, limit: 12, search, category },
+      { includeFinancials: session?.user?.role === 'ADMIN' },
+    )
     products = result.products ?? []
     meta = result.meta ?? EMPTY_META
   } catch (e) {

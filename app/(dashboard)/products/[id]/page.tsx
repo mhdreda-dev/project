@@ -7,7 +7,9 @@ export const dynamic = 'force-dynamic'
 
 export default async function ProductDetailPage({ params }: { params: { id: string } }) {
   const session = await auth()
-  const product = await productsService.findById(params.id)
+  const product = await productsService.findById(params.id, {
+    includeFinancials: session?.user?.role === 'ADMIN',
+  })
   if (!product) notFound()
 
   return (

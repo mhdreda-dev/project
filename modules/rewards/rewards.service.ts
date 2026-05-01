@@ -44,7 +44,7 @@ export class RewardsService {
   async getEmployeeSummary(userId: string) {
     const today = startOfToday()
 
-    const [total, todayTotal, added, sold, latestEvents] = await Promise.all([
+    const [total, todayTotal, added, sold, addedToday, soldToday, latestEvents] = await Promise.all([
       db.rewardEvent.aggregate({
         where: { userId },
         _sum: { rewardAmountMAD: true },
@@ -61,6 +61,14 @@ export class RewardsService {
         where: { userId, actionType: RewardActionType.PRODUCT_SOLD },
         _sum: { quantity: true },
       }),
+      db.rewardEvent.aggregate({
+        where: { userId, actionType: RewardActionType.PRODUCT_ADDED, createdAt: { gte: today } },
+        _sum: { quantity: true },
+      }),
+      db.rewardEvent.aggregate({
+        where: { userId, actionType: RewardActionType.PRODUCT_SOLD, createdAt: { gte: today } },
+        _sum: { quantity: true },
+      }),
       db.rewardEvent.findMany({
         where: { userId },
         take: 5,
@@ -74,6 +82,8 @@ export class RewardsService {
       rewardsTodayMAD: toNumber(todayTotal._sum.rewardAmountMAD),
       productsAddedCount: added._sum.quantity ?? 0,
       productsSoldCount: sold._sum.quantity ?? 0,
+      productsAddedTodayCount: addedToday._sum.quantity ?? 0,
+      productsSoldTodayCount: soldToday._sum.quantity ?? 0,
       latestEvents: latestEvents.map((event) => ({
         ...event,
         rewardAmountMAD: toNumber(event.rewardAmountMAD),

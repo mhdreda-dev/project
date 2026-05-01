@@ -18,7 +18,9 @@ export async function GET(req: NextRequest) {
   if (!queryParsed.success) return apiError(queryParsed.error.errors[0].message, 422)
 
   try {
-    const result = await productsService.list(queryParsed.data)
+    const result = await productsService.list(queryParsed.data, {
+      includeFinancials: session.user.role === 'ADMIN',
+    })
     return apiSuccess(result)
   } catch (error) {
     return apiError('Failed to fetch products', 500)
@@ -28,14 +30,20 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const session = await auth()
   if (!session) return apiError('Unauthorized', 401)
-  if (session.user.role !== 'ADMIN') return apiError('Forbidden', 403)
 
   try {
     const body = await req.json()
+    if (session.user.role === 'EMPLOYEE' && body.costPrice != null) {
+      return apiError('Forbidden', 403)
+    }
+
     const parsed = createProductSchema.safeParse(body)
     if (!parsed.success) return apiError(parsed.error.errors[0].message, 422)
 
-    const product = await productsService.create(parsed.data, session.user.id)
+    const input = session.user.role === 'ADMIN'
+      ? parsed.data
+      : { ...parsed.data, costPrice: null }
+    const product = await productsService.create(input, session.user.id)
 
     await logActivity({
       userId: session.user.id,

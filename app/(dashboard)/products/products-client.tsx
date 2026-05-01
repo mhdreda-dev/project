@@ -293,18 +293,18 @@ export function ProductsClient({ initialProducts, meta: initialMeta, brands, isA
         description={t('products.description', { count: meta.total })}
         action={
           <div className="flex gap-2">
-            <ExportButton
-              endpoint="/api/products/export"
-              filename="products"
-              params={{ search, brandId: brandFilter, isActive: statusFilter }}
-              disabled={meta.total === 0}
-            />
             {isAdmin && (
-              <Button onClick={openCreate} className="gap-2 rounded-xl">
-                <Plus className="h-4 w-4" />
-                {t('common.actions.addProduct')}
-              </Button>
+              <ExportButton
+                endpoint="/api/products/export"
+                filename="products"
+                params={{ search, brandId: brandFilter, isActive: statusFilter }}
+                disabled={meta.total === 0}
+              />
             )}
+            <Button onClick={openCreate} className="gap-2 rounded-xl">
+              <Plus className="h-4 w-4" />
+              {t('common.actions.addProduct')}
+            </Button>
           </div>
         }
       />
@@ -359,7 +359,7 @@ export function ProductsClient({ initialProducts, meta: initialMeta, brands, isA
           icon={Package}
           title={t('products.empty.title')}
           description={hasFilters ? t('products.empty.filtered') : t('products.empty.initial')}
-          action={isAdmin && <Button onClick={openCreate} className="gap-2"><Plus className="h-4 w-4" />{t('common.actions.addProduct')}</Button>}
+          action={<Button onClick={openCreate} className="gap-2"><Plus className="h-4 w-4" />{t('common.actions.addProduct')}</Button>}
         />
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -569,7 +569,7 @@ export function ProductsClient({ initialProducts, meta: initialMeta, brands, isA
             </div>
 
             {/* Pricing (product-level) */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className={`grid grid-cols-1 gap-4 ${isAdmin ? 'sm:grid-cols-3' : 'sm:grid-cols-2'}`}>
               <div>
                 <Label htmlFor="price">{t('common.labels.salePriceMad')} *</Label>
                 <Input
@@ -584,19 +584,21 @@ export function ProductsClient({ initialProducts, meta: initialMeta, brands, isA
                   className="mt-1 rounded-xl"
                 />
               </div>
-              <div>
-                <Label htmlFor="costPrice">{t('common.labels.costPriceMad')}</Label>
-                <Input
-                  id="costPrice"
-                  type="number"
-                  step="0.01"
-                  min={0}
-                  value={form.costPrice}
-                  onChange={(e) => setForm((f) => ({ ...f, costPrice: e.target.value }))}
-                  placeholder={t('common.placeholders.priceMad')}
-                  className="mt-1 rounded-xl"
-                />
-              </div>
+              {isAdmin && (
+                <div>
+                  <Label htmlFor="costPrice">{t('common.labels.costPriceMad')}</Label>
+                  <Input
+                    id="costPrice"
+                    type="number"
+                    step="0.01"
+                    min={0}
+                    value={form.costPrice}
+                    onChange={(e) => setForm((f) => ({ ...f, costPrice: e.target.value }))}
+                    placeholder={t('common.placeholders.priceMad')}
+                    className="mt-1 rounded-xl"
+                  />
+                </div>
+              )}
               <div>
                 <Label htmlFor="lowStock">{t('common.labels.lowStockThreshold')}</Label>
                 <Input

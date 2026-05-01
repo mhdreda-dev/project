@@ -20,8 +20,23 @@ function serializeProduct<T extends Record<string, any> | null | undefined>(p: T
   return out as T
 }
 
+function hideFinancialProductFields<T extends Record<string, any> | null | undefined>(p: T): T {
+  if (!p) return p
+  const out: any = { ...p }
+  delete out.costPrice
+  if (Array.isArray(out.sizes)) {
+    out.sizes = out.sizes.map((s: any) => {
+      const safe = { ...s }
+      delete safe.costPrice
+      delete safe.price
+      return safe
+    })
+  }
+  return out as T
+}
+
 export class ProductsService {
-  async list(query: ProductQuery) {
+  async list(query: ProductQuery, options: { includeFinancials?: boolean } = {}) {
     const { page, limit, search, category, isActive, brandId } = query
 
     const where = {
@@ -52,7 +67,11 @@ export class ProductsService {
       db.product.count({ where }),
     ])
 
-    return { products: products.map(serializeProduct), meta: paginationMeta(total, page, limit) }
+    const serialized = products.map(serializeProduct)
+    return {
+      products: options.includeFinancials ? serialized : serialized.map(hideFinancialProductFields),
+      meta: paginationMeta(total, page, limit),
+    }
   }
 
   /**
@@ -86,7 +105,7 @@ export class ProductsService {
     return rows.map(serializeProduct)
   }
 
-  async findById(id: string) {
+  async findById(id: string, options: { includeFinancials?: boolean } = {}) {
     const p = await db.product.findFirst({
       where: { id, deletedAt: null },
       include: {
@@ -99,7 +118,8 @@ export class ProductsService {
         },
       },
     })
-    return serializeProduct(p)
+    const product = serializeProduct(p)
+    return options.includeFinancials ? product : hideFinancialProductFields(product)
   }
 
   async create(input: CreateProductInput, userId?: string) {
@@ -271,6 +291,43 @@ export class ProductsService {
       totalInventoryValue: parseFloat(values?.retail_value ?? '0'),
       totalCostValue: parseFloat(values?.cost_value ?? '0'),
       expectedProfit: parseFloat(values?.expected_profit ?? '0'),
+    }
+  }
+
+  async getOperationalDashboardStats() {
+    const [totalProducts, totalSizes, recentMovements, lowStockCount] = await Promise.all([
+      db.product.count({ where: { isActive: true, deletedAt: null } }),
+      db.productSize.aggregate({
+        _sum: { quantity: true },
+        where: { product: { isActive: true, deletedAt: null } },
+      }),
+      db.stockMovement.count({
+        where: {
+          createdAt: {
+            gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
+          },
+        },
+      }),
+      db.$queryRaw<[{ count: bigint }]>`
+        SELECT COUNT(*)::bigint AS count FROM (
+          SELECT p.id, COALESCE(SUM(ps.quantity), 0) AS qty, p."lowStockThreshold" AS threshold
+          FROM products p
+          LEFT JOIN product_sizes ps ON ps."productId" = p.id
+          WHERE p."isActive" = true AND p."deletedAt" IS NULL
+          GROUP BY p.id
+        ) agg
+        WHERE agg.qty <= agg.threshold
+      `,
+    ])
+
+    const totalUnits = totalSizes._sum.quantity ?? 0
+
+    return {
+      totalProducts,
+      totalStock: totalUnits,
+      totalUnits,
+      lowStockCount: Number(lowStockCount[0]?.count ?? 0),
+      recentMovements,
     }
   }
 }

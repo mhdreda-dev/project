@@ -45,7 +45,7 @@ function NavContent({ onClose }: { onClose?: () => void }) {
       labelKey: 'shell.sidebar.overview',
       items: [
         { href: '/dashboard', labelKey: 'shell.sidebar.dashboard', icon: LayoutDashboard },
-        { href: '/reports', labelKey: 'shell.sidebar.reports', icon: BarChart3 },
+        { href: '/reports', labelKey: 'shell.sidebar.reports', icon: BarChart3, adminOnly: true },
         { href: '/ai-requests', labelKey: 'shell.sidebar.aiRequests', icon: Bot, adminOnly: true },
       ],
     },

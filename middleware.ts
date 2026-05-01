@@ -7,7 +7,17 @@ import { NextResponse } from 'next/server'
 const { auth } = NextAuth(authConfig)
 
 const PUBLIC_PATHS = ['/login', '/register', '/api/auth', '/api/ai/sales-agent', '/api/whatsapp/webhook']
-const ADMIN_ONLY_PATHS = ['/admin', '/api/users', '/api/logs']
+const ADMIN_ONLY_PATHS = [
+  '/admin',
+  '/reports',
+  '/api/reports',
+  '/api/users',
+  '/api/logs',
+  '/api/products/stats',
+  '/api/products/export',
+  '/api/stock/export',
+  '/api/stock/low/export',
+]
 
 export default auth(function middleware(req) {
   const { nextUrl } = req

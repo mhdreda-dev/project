@@ -8,6 +8,7 @@ import { getRequestI18n } from '@/lib/i18n/request'
 export async function GET(req: NextRequest) {
   const session = await auth()
   if (!session) return apiError('Unauthorized', 401)
+  if (session.user.role !== 'ADMIN') return apiError('Forbidden', 403)
   const { t } = getRequestI18n(req)
 
   try {

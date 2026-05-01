@@ -21,9 +21,10 @@ import { getServerI18n } from '@/lib/i18n/server'
 export default async function DashboardPage() {
   const session = await auth()
   const { t } = getServerI18n()
+  const isAdmin = session?.user?.role === 'ADMIN'
 
   const [stats, lowStock, recentMovements, rewardSummary] = await Promise.all([
-    productsService.getDashboardStats(),
+    isAdmin ? productsService.getDashboardStats() : productsService.getOperationalDashboardStats(),
     reportsService.getLowStockProducts(),
     reportsService.getRecentStockMovements(5),
     rewardsService.getEmployeeSummary(session?.user?.id ?? ''),
@@ -39,45 +40,85 @@ export default async function DashboardPage() {
         </p>
       </div>
 
-      {/* Rewards */}
-      <div className="grid gap-6 lg:grid-cols-3">
-        <Card className="border-emerald-200 bg-gradient-to-br from-emerald-50 to-white lg:col-span-1">
-          <CardContent className="pt-6">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="text-sm font-medium text-emerald-700">Your reward balance:</p>
-                <p className="mt-2 text-3xl font-bold text-slate-950" aria-label={`Your reward balance: ${formatCurrency(rewardSummary.totalRewardsMAD)}`}>
-                  {formatCurrency(rewardSummary.totalRewardsMAD)}
-                </p>
-                <p className="mt-2 text-xs text-muted-foreground">Earned from product adds and sales.</p>
+      {isAdmin ? (
+        /* Rewards */
+        <div className="grid gap-6 lg:grid-cols-3">
+          <Card className="border-emerald-200 bg-gradient-to-br from-emerald-50 to-white lg:col-span-1">
+            <CardContent className="pt-6">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-sm font-medium text-emerald-700">Your reward balance:</p>
+                  <p className="mt-2 text-3xl font-bold text-slate-950" aria-label={`Your reward balance: ${formatCurrency(rewardSummary.totalRewardsMAD)}`}>
+                    {formatCurrency(rewardSummary.totalRewardsMAD)}
+                  </p>
+                  <p className="mt-2 text-xs text-muted-foreground">Earned from product adds and sales.</p>
+                </div>
+                <div className="rounded-lg bg-emerald-100 p-2.5">
+                  <Wallet className="h-5 w-5 text-emerald-700" />
+                </div>
               </div>
-              <div className="rounded-lg bg-emerald-100 p-2.5">
-                <Wallet className="h-5 w-5 text-emerald-700" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
 
-        <Card className="lg:col-span-2">
+          <Card className="lg:col-span-2">
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <Gift className="h-4 w-4 text-emerald-600" />
+                Employee Rewards
+              </CardTitle>
+              <CardDescription>Rewards are tracked in MAD for each product added or sold.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-3 sm:grid-cols-3">
+                <RewardMetric label="Rewards today" value={formatCurrency(rewardSummary.rewardsTodayMAD)} />
+                <RewardMetric label="Products added" value={rewardSummary.productsAddedCount.toLocaleString()} />
+                <RewardMetric label="Products sold" value={rewardSummary.productsSoldCount.toLocaleString()} />
+              </div>
+
+              <div className="mt-5 space-y-3">
+                {rewardSummary.latestEvents.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No reward events yet.</p>
+                ) : (
+                  rewardSummary.latestEvents.map((event) => (
+                    <div key={event.id} className="flex items-center justify-between gap-4 border-b pb-3 last:border-0 last:pb-0">
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium">
+                          {event.actionType === 'PRODUCT_ADDED' ? 'Product added' : 'Product sold'}
+                        </p>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {event.product?.name ?? 'Archived product'} · Qty {event.quantity}
+                        </p>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <p className="text-sm font-semibold text-emerald-700">
+                          +{formatCurrency(event.rewardAmountMAD)}
+                        </p>
+                        <p className="text-xs text-muted-foreground">{formatDate(event.createdAt)}</p>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      ) : (
+        <Card>
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
               <Gift className="h-4 w-4 text-emerald-600" />
-              Employee Rewards
+              Today&apos;s activity
             </CardTitle>
-            <CardDescription>Rewards are tracked in MAD for each product added or sold.</CardDescription>
+            <CardDescription>Product and sales actions recorded for your account.</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid gap-3 sm:grid-cols-3">
-              <RewardMetric label="Rewards today" value={formatCurrency(rewardSummary.rewardsTodayMAD)} />
-              <RewardMetric label="Products added" value={rewardSummary.productsAddedCount.toLocaleString()} />
-              <RewardMetric label="Products sold" value={rewardSummary.productsSoldCount.toLocaleString()} />
+            <div className="grid gap-3 sm:grid-cols-2">
+              <RewardMetric label="Products added today" value={rewardSummary.productsAddedTodayCount.toLocaleString()} />
+              <RewardMetric label="Products sold today" value={rewardSummary.productsSoldTodayCount.toLocaleString()} />
             </div>
-
-            <div className="mt-5 space-y-3">
-              {rewardSummary.latestEvents.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No reward events yet.</p>
-              ) : (
-                rewardSummary.latestEvents.map((event) => (
+            {rewardSummary.latestEvents.length > 0 && (
+              <div className="mt-5 space-y-3">
+                {rewardSummary.latestEvents.map((event) => (
                   <div key={event.id} className="flex items-center justify-between gap-4 border-b pb-3 last:border-0 last:pb-0">
                     <div className="min-w-0">
                       <p className="text-sm font-medium">
@@ -87,22 +128,17 @@ export default async function DashboardPage() {
                         {event.product?.name ?? 'Archived product'} · Qty {event.quantity}
                       </p>
                     </div>
-                    <div className="text-right shrink-0">
-                      <p className="text-sm font-semibold text-emerald-700">
-                        +{formatCurrency(event.rewardAmountMAD)}
-                      </p>
-                      <p className="text-xs text-muted-foreground">{formatDate(event.createdAt)}</p>
-                    </div>
+                    <p className="text-xs text-muted-foreground shrink-0">{formatDate(event.createdAt)}</p>
                   </div>
-                ))
-              )}
-            </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
-      </div>
+      )}
 
       {/* Stats cards */}
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+      <div className={`grid gap-4 md:grid-cols-2 ${isAdmin ? 'xl:grid-cols-5' : 'xl:grid-cols-3'}`}>
         <StatCard
           title={t('dashboard.stats.totalProducts')}
           value={stats.totalProducts.toLocaleString()}
@@ -117,20 +153,24 @@ export default async function DashboardPage() {
           icon={<TrendingUp className="h-5 w-5 text-green-600" />}
           color="green"
         />
-        <StatCard
-          title={t('dashboard.stats.inventoryValueMad')}
-          value={formatCurrency(stats.totalInventoryValue)}
-          description={t('dashboard.stats.atRetailPrice')}
-          icon={<DollarSign className="h-5 w-5 text-purple-600" />}
-          color="purple"
-        />
-        <StatCard
-          title={t('dashboard.stats.expectedProfit')}
-          value={formatCurrency(stats.expectedProfit)}
-          description={t('dashboard.stats.retailMinusCost')}
-          icon={<TrendingUp className="h-5 w-5 text-green-600" />}
-          color="green"
-        />
+        {isAdmin && (
+          <>
+            <StatCard
+              title={t('dashboard.stats.inventoryValueMad')}
+              value={formatCurrency((stats as { totalInventoryValue?: number }).totalInventoryValue ?? 0)}
+              description={t('dashboard.stats.atRetailPrice')}
+              icon={<DollarSign className="h-5 w-5 text-purple-600" />}
+              color="purple"
+            />
+            <StatCard
+              title={t('dashboard.stats.expectedProfit')}
+              value={formatCurrency((stats as { expectedProfit?: number }).expectedProfit ?? 0)}
+              description={t('dashboard.stats.retailMinusCost')}
+              icon={<TrendingUp className="h-5 w-5 text-green-600" />}
+              color="green"
+            />
+          </>
+        )}
         <StatCard
           title={t('dashboard.stats.lowStockAlerts')}
           value={stats.lowStockCount.toLocaleString()}

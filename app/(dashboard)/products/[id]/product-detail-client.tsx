@@ -43,7 +43,7 @@ type Product = {
   category: string | null
   imageUrl: string | null
   price: number
-  costPrice: number | null
+  costPrice?: number | null
   lowStockThreshold: number
   isActive: boolean
   brand: { id: string; name: string } | null
@@ -76,7 +76,7 @@ export function ProductDetailClient({ product: initial, isAdmin }: Props) {
 
   const totalStock = product.sizes.reduce((s, sz) => s + sz.quantity, 0)
   const isLow = totalStock <= product.lowStockThreshold
-  const margin = product.costPrice != null
+  const margin = isAdmin && product.costPrice != null
     ? Number(product.price) - Number(product.costPrice)
     : null
   const marginPct = margin != null && Number(product.price) > 0
@@ -236,17 +236,23 @@ export function ProductDetailClient({ product: initial, isAdmin }: Props) {
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <MiniStat label={t('common.labels.priceMad')} value={formatCurrency(Number(product.price))} icon={DollarSign} />
-            <MiniStat
-              label={t('common.labels.costPriceMad')}
-              value={product.costPrice != null ? formatCurrency(Number(product.costPrice)) : '—'}
-            />
-            <MiniStat
-              label={t('common.labels.marginMad')}
-              value={margin != null
-                ? `${formatCurrency(margin)}${marginPct != null ? ` (${marginPct.toFixed(0)}%)` : ''}`
-                : '—'}
-            />
-            <MiniStat label={t('common.labels.inventoryValueMad')} value={formatCurrency(inventoryValue)} />
+            {isAdmin ? (
+              <>
+                <MiniStat
+                  label={t('common.labels.costPriceMad')}
+                  value={product.costPrice != null ? formatCurrency(Number(product.costPrice)) : '—'}
+                />
+                <MiniStat
+                  label={t('common.labels.marginMad')}
+                  value={margin != null
+                    ? `${formatCurrency(margin)}${marginPct != null ? ` (${marginPct.toFixed(0)}%)` : ''}`
+                    : '—'}
+                />
+                <MiniStat label={t('common.labels.inventoryValueMad')} value={formatCurrency(inventoryValue)} />
+              </>
+            ) : (
+              <MiniStat label={t('common.labels.stock')} value={t('common.misc.units', { count: totalStock })} />
+            )}
           </div>
 
           {isAdmin && (

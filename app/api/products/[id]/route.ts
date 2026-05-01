@@ -15,7 +15,9 @@ export async function GET(_req: NextRequest, { params }: Params) {
   if (!session) return apiError('Unauthorized', 401)
 
   try {
-    const product = await productsService.findById(params.id)
+    const product = await productsService.findById(params.id, {
+      includeFinancials: session.user.role === 'ADMIN',
+    })
     if (!product) return apiError('Product not found', 404)
     return apiSuccess(product)
   } catch {
@@ -33,7 +35,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     const parsed = updateProductSchema.safeParse(body)
     if (!parsed.success) return apiError(parsed.error.errors[0].message, 422)
 
-    const old = await productsService.findById(params.id)
+    const old = await productsService.findById(params.id, { includeFinancials: true })
     const product = await productsService.update(params.id, parsed.data)
 
     await logActivity({
