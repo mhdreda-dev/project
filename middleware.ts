@@ -20,14 +20,61 @@ const ADMIN_ONLY_PATHS = [
 ]
 const SUPER_ADMIN_ONLY_PATHS = ['/stores', '/api/stores']
 
+function getHostname(req: Parameters<Parameters<typeof auth>[0]>[0]) {
+  return (req.headers.get('x-forwarded-host') ?? req.headers.get('host') ?? '').split(':')[0].toLowerCase()
+}
+
+function isPreviewHostname(hostname: string) {
+  return (
+    hostname === 'localhost' ||
+    hostname === '127.0.0.1' ||
+    hostname === '0.0.0.0' ||
+    hostname.endsWith('.localhost') ||
+    hostname.endsWith('.vercel.app')
+  )
+}
+
+function getConfiguredMainHost() {
+  const raw = process.env.NEXT_PUBLIC_APP_URL ?? process.env.AUTH_URL ?? process.env.NEXTAUTH_URL
+  if (!raw) return null
+  try {
+    return new URL(raw).hostname.toLowerCase()
+  } catch {
+    return raw.replace(/^https?:\/\//, '').split('/')[0]?.split(':')[0]?.toLowerCase() || null
+  }
+}
+
+function getTenantSlugFromHost(hostname: string) {
+  if (!hostname || isPreviewHostname(hostname)) return null
+
+  const mainHost = getConfiguredMainHost()
+  if (!mainHost || hostname === mainHost || !hostname.endsWith(`.${mainHost}`)) return null
+
+  const slug = hostname.slice(0, -(mainHost.length + 1)).split('.').at(-1)
+  return slug && /^[a-z0-9-]+$/.test(slug) ? slug : null
+}
+
+function loginUrl(reqUrl: string, tenantSlug: string | null) {
+  const url = new URL('/login', reqUrl)
+  if (tenantSlug) url.searchParams.set('store', tenantSlug)
+  return url
+}
+
 export default auth(function middleware(req) {
   const { nextUrl } = req
   const session = req.auth
+  const hostname = getHostname(req)
+  const isPreview = isPreviewHostname(hostname)
+  const tenantSlug = isPreview ? null : getTenantSlugFromHost(hostname)
 
   const isPublic = PUBLIC_PATHS.some((p) => nextUrl.pathname.startsWith(p))
 
+  if (!isPreview && tenantSlug && nextUrl.pathname === '/login' && !nextUrl.searchParams.get('store')) {
+    return NextResponse.redirect(loginUrl(req.url, tenantSlug))
+  }
+
   if (!isPublic && !session) {
-    return NextResponse.redirect(new URL('/login', req.url))
+    return NextResponse.redirect(loginUrl(req.url, tenantSlug))
   }
 
   if (isPublic && session && !nextUrl.pathname.startsWith('/api')) {
