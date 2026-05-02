@@ -4,15 +4,17 @@ import { stockService } from '@/modules/stock/stock.service'
 import { apiError } from '@/lib/utils'
 import { toCsv, csvResponse } from '@/lib/csv'
 import { getRequestI18n } from '@/lib/i18n/request'
+import { getSessionStoreId } from '@/lib/store-context'
 
 export async function GET(req: NextRequest) {
   const session = await auth()
   if (!session) return apiError('Unauthorized', 401)
   if (session.user.role !== 'ADMIN') return apiError('Forbidden', 403)
+  const scope = { storeId: getSessionStoreId(session) }
   const { t } = getRequestI18n(req)
 
   try {
-    const items = await stockService.getLowStock()
+    const items = await stockService.getLowStock(scope)
     const rows = items.map((it) => ({
       sku: it.product.sku,
       name: it.product.name,

@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { formatDate } from '@/lib/utils'
 import { ClipboardList } from 'lucide-react'
 import { getServerI18n } from '@/lib/i18n/server'
+import { getSessionStoreId } from '@/lib/store-context'
 
 const actionColor: Record<string, 'default' | 'success' | 'destructive' | 'info' | 'warning' | 'secondary' | 'outline'> = {
   CREATE: 'success',
@@ -25,10 +26,11 @@ export default async function LogsPage({
 }) {
   const session = await auth()
   if (session?.user?.role !== 'ADMIN') redirect('/dashboard')
+  const scope = { storeId: getSessionStoreId(session) }
   const { t } = getServerI18n()
 
   const page = Number(searchParams.page ?? 1)
-  const { logs, meta } = await logsService.list({ page, limit: 30 })
+  const { logs, meta } = await logsService.list({ page, limit: 30 }, scope)
 
   return (
     <div className="space-y-6">

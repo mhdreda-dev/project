@@ -3,19 +3,21 @@ import { auth } from '@/lib/auth'
 import { stockService } from '@/modules/stock/stock.service'
 import { stockMovementSchema, stockQuerySchema } from '@/lib/validations/stock'
 import { logActivity } from '@/lib/activity-logger'
+import { getSessionStoreId } from '@/lib/store-context'
 import { apiSuccess, apiError, getClientIp } from '@/lib/utils'
 import { ActivityAction } from '@prisma/client'
 
 export async function GET(req: NextRequest) {
   const session = await auth()
   if (!session) return apiError('Unauthorized', 401)
+  const scope = { storeId: getSessionStoreId(session) }
 
   const { searchParams } = req.nextUrl
   const parsed = stockQuerySchema.safeParse(Object.fromEntries(searchParams.entries()))
   if (!parsed.success) return apiError(parsed.error.errors[0].message, 422)
 
   try {
-    const result = await stockService.list(parsed.data)
+    const result = await stockService.list(parsed.data, scope)
     return apiSuccess(result)
   } catch {
     return apiError('Failed to fetch stock movements', 500)
@@ -25,13 +27,14 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const session = await auth()
   if (!session) return apiError('Unauthorized', 401)
+  const scope = { storeId: getSessionStoreId(session) }
 
   try {
     const body = await req.json()
     const parsed = stockMovementSchema.safeParse(body)
     if (!parsed.success) return apiError(parsed.error.errors[0].message, 422)
 
-    const movement = await stockService.recordMovement(parsed.data, session.user.id)
+    const movement = await stockService.recordMovement(parsed.data, session.user.id, scope)
 
     const actionMap = {
       IN: ActivityAction.STOCK_IN,
@@ -40,6 +43,7 @@ export async function POST(req: NextRequest) {
     }
 
     await logActivity({
+      storeId: scope.storeId,
       userId: session.user.id,
       action: actionMap[parsed.data.type],
       entity: 'stock_movement',

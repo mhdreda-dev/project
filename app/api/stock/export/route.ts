@@ -5,11 +5,13 @@ import { apiError } from '@/lib/utils'
 import { toCsv, csvResponse } from '@/lib/csv'
 import { MovementType } from '@prisma/client'
 import { getRequestI18n } from '@/lib/i18n/request'
+import { getSessionStoreId } from '@/lib/store-context'
 
 export async function GET(req: NextRequest) {
   const session = await auth()
   if (!session) return apiError('Unauthorized', 401)
   if (session.user.role !== 'ADMIN') return apiError('Forbidden', 403)
+  const scope = { storeId: getSessionStoreId(session) }
   const { t } = getRequestI18n(req)
 
   const sp = req.nextUrl.searchParams
@@ -24,7 +26,7 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const movements = await stockService.listAll(filters)
+    const movements = await stockService.listAll(filters, scope)
     const typeLabels: Record<MovementType, string> = {
       IN: t('export.values.in'),
       OUT: t('export.values.out'),

@@ -1,4 +1,5 @@
 import { db } from '@/lib/db'
+import { StoreScope } from '@/lib/store-context'
 import { MovementType, Prisma } from '@prisma/client'
 
 export type ReportPeriod = 'day' | 'week' | 'month' | 'year' | 'custom'
@@ -33,33 +34,33 @@ function getDateRange(query: ReportQuery): { from: Date; to: Date } {
 }
 
 export class ReportsService {
-  async getSummary(query: ReportQuery) {
+  async getSummary(query: ReportQuery, scope: StoreScope) {
     const { from, to } = getDateRange(query)
     const dateFilter = { gte: from, lte: to }
 
     const [totalProducts, totalUnits, movements, totalIn, totalOut, lowStockCount, inventoryValue] = await Promise.all([
-      db.product.count({ where: { isActive: true, deletedAt: null } }),
+      db.product.count({ where: { storeId: scope.storeId, isActive: true, deletedAt: null } }),
       db.productSize.aggregate({
         _sum: { quantity: true },
-        where: { product: { isActive: true, deletedAt: null } },
+        where: { product: { storeId: scope.storeId, isActive: true, deletedAt: null } },
       }),
       db.stockMovement.count({
-        where: { createdAt: dateFilter, product: { isActive: true, deletedAt: null } },
+        where: { storeId: scope.storeId, createdAt: dateFilter, product: { isActive: true, deletedAt: null } },
       }),
       db.stockMovement.aggregate({
         _sum: { quantity: true },
-        where: { type: MovementType.IN, createdAt: dateFilter, product: { isActive: true, deletedAt: null } },
+        where: { storeId: scope.storeId, type: MovementType.IN, createdAt: dateFilter, product: { isActive: true, deletedAt: null } },
       }),
       db.stockMovement.aggregate({
         _sum: { quantity: true },
-        where: { type: MovementType.OUT, createdAt: dateFilter, product: { isActive: true, deletedAt: null } },
+        where: { storeId: scope.storeId, type: MovementType.OUT, createdAt: dateFilter, product: { isActive: true, deletedAt: null } },
       }),
       db.$queryRaw<[{ count: bigint }]>`
         SELECT COUNT(*)::bigint AS count FROM (
           SELECT p.id, COALESCE(SUM(ps.quantity), 0) AS qty, p."lowStockThreshold" AS threshold
           FROM products p
           LEFT JOIN product_sizes ps ON ps."productId" = p.id
-          WHERE ${ACTIVE_PRODUCT_SQL}
+          WHERE p."storeId" = ${scope.storeId} AND ${ACTIVE_PRODUCT_SQL}
           GROUP BY p.id
         ) agg
         WHERE agg.qty <= agg.threshold
@@ -74,7 +75,7 @@ export class ReportsService {
           )::text AS expected_profit
         FROM product_sizes ps
         JOIN products p ON p.id = ps."productId"
-        WHERE ${ACTIVE_PRODUCT_SQL}
+        WHERE p."storeId" = ${scope.storeId} AND ${ACTIVE_PRODUCT_SQL}
       `,
     ])
 
@@ -95,7 +96,7 @@ export class ReportsService {
     }
   }
 
-  async getTopProductsByValue(limit = 10) {
+  async getTopProductsByValue(scope: StoreScope, limit = 10) {
     const rows = await db.$queryRaw<Array<{
       id: string
       name: string
@@ -123,7 +124,7 @@ export class ReportsService {
       FROM products p
       LEFT JOIN product_sizes ps ON ps."productId" = p.id
       LEFT JOIN brands b ON b.id = p."brandId"
-      WHERE ${ACTIVE_PRODUCT_SQL}
+      WHERE p."storeId" = ${scope.storeId} AND ${ACTIVE_PRODUCT_SQL}
       GROUP BY p.id, b.name
       ORDER BY COALESCE(SUM(ps.quantity * COALESCE(ps.price, p.price, 0)), 0) DESC, p.name ASC
       LIMIT ${limit}
@@ -144,7 +145,7 @@ export class ReportsService {
     }))
   }
 
-  async getBrandDistribution(limit = 8) {
+  async getBrandDistribution(scope: StoreScope, limit = 8) {
     const rows = await db.$queryRaw<Array<{
       id: string | null
       name: string
@@ -161,7 +162,7 @@ export class ReportsService {
       FROM products p
       LEFT JOIN brands b ON b.id = p."brandId"
       LEFT JOIN product_sizes ps ON ps."productId" = p.id
-      WHERE ${ACTIVE_PRODUCT_SQL}
+      WHERE p."storeId" = ${scope.storeId} AND ${ACTIVE_PRODUCT_SQL}
       GROUP BY b.id, b.name
       ORDER BY COALESCE(SUM(ps.quantity * COALESCE(ps.price, p.price, 0)), 0) DESC, name ASC
       LIMIT ${limit}
@@ -176,11 +177,11 @@ export class ReportsService {
     }))
   }
 
-  async getMovementTimeline(query: ReportQuery) {
+  async getMovementTimeline(query: ReportQuery, scope: StoreScope) {
     const { from, to } = getDateRange(query)
 
     const movements = await db.stockMovement.findMany({
-      where: { createdAt: { gte: from, lte: to }, product: { isActive: true, deletedAt: null } },
+      where: { storeId: scope.storeId, createdAt: { gte: from, lte: to }, product: { isActive: true, deletedAt: null } },
       select: { type: true, quantity: true, createdAt: true },
       orderBy: { createdAt: 'asc' },
     })
@@ -197,7 +198,7 @@ export class ReportsService {
     return Array.from(grouped.values()).sort((a, b) => a.date.localeCompare(b.date))
   }
 
-  async getLowStockProducts() {
+  async getLowStockProducts(scope: StoreScope) {
     const rows = await db.$queryRaw<Array<{
       id: string
       name: string
@@ -218,7 +219,7 @@ export class ReportsService {
       FROM products p
       LEFT JOIN product_sizes ps ON ps."productId" = p.id
       LEFT JOIN brands b ON b.id = p."brandId"
-      WHERE ${ACTIVE_PRODUCT_SQL}
+      WHERE p."storeId" = ${scope.storeId} AND ${ACTIVE_PRODUCT_SQL}
       GROUP BY p.id, b.name
       HAVING COALESCE(SUM(ps.quantity), 0) <= p."lowStockThreshold"
       ORDER BY COALESCE(SUM(ps.quantity), 0) ASC, p.name ASC
@@ -241,10 +242,10 @@ export class ReportsService {
     }))
   }
 
-  async getRecentStockMovements(limit = 10) {
+  async getRecentStockMovements(scope: StoreScope, limit = 10) {
     return db.stockMovement.findMany({
       take: limit,
-      where: { product: { isActive: true, deletedAt: null } },
+      where: { storeId: scope.storeId, product: { isActive: true, deletedAt: null } },
       orderBy: { createdAt: 'desc' },
       include: {
         product: { select: { name: true, sku: true } },

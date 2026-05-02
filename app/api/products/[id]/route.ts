@@ -3,6 +3,7 @@ import { auth } from '@/lib/auth'
 import { productsService } from '@/modules/products/products.service'
 import { updateProductSchema } from '@/lib/validations/product'
 import { logActivity } from '@/lib/activity-logger'
+import { getSessionStoreId } from '@/lib/store-context'
 import { apiSuccess, apiError, getClientIp } from '@/lib/utils'
 import { ActivityAction } from '@prisma/client'
 
@@ -13,9 +14,10 @@ interface Params {
 export async function GET(_req: NextRequest, { params }: Params) {
   const session = await auth()
   if (!session) return apiError('Unauthorized', 401)
+  const scope = { storeId: getSessionStoreId(session) }
 
   try {
-    const product = await productsService.findById(params.id, {
+    const product = await productsService.findById(params.id, scope, {
       includeFinancials: session.user.role === 'ADMIN',
     })
     if (!product) return apiError('Product not found', 404)
@@ -29,16 +31,19 @@ export async function PATCH(req: NextRequest, { params }: Params) {
   const session = await auth()
   if (!session) return apiError('Unauthorized', 401)
   if (session.user.role !== 'ADMIN') return apiError('Forbidden', 403)
+  const scope = { storeId: getSessionStoreId(session) }
 
   try {
     const body = await req.json()
     const parsed = updateProductSchema.safeParse(body)
     if (!parsed.success) return apiError(parsed.error.errors[0].message, 422)
 
-    const old = await productsService.findById(params.id, { includeFinancials: true })
-    const product = await productsService.update(params.id, parsed.data)
+    const old = await productsService.findById(params.id, scope, { includeFinancials: true })
+    if (!old) return apiError('Product not found', 404)
+    const product = await productsService.update(params.id, parsed.data, scope)
 
     await logActivity({
+      storeId: scope.storeId,
       userId: session.user.id,
       action: ActivityAction.UPDATE,
       entity: 'product',
@@ -59,11 +64,13 @@ export async function DELETE(req: NextRequest, { params }: Params) {
   const session = await auth()
   if (!session) return apiError('Unauthorized', 401)
   if (session.user.role !== 'ADMIN') return apiError('Forbidden', 403)
+  const scope = { storeId: getSessionStoreId(session) }
 
   try {
-    const product = await productsService.delete(params.id)
+    const product = await productsService.delete(params.id, scope)
 
     await logActivity({
+      storeId: scope.storeId,
       userId: session.user.id,
       action: ActivityAction.DELETE,
       entity: 'product',

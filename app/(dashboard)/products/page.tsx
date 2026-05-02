@@ -3,6 +3,7 @@ import { productsService } from '@/modules/products/products.service'
 import { brandsService } from '@/modules/brands/brands.service'
 import { ProductsClient } from './products-client'
 import { getServerI18n } from '@/lib/i18n/server'
+import { getSessionStoreId } from '@/lib/store-context'
 
 export const dynamic = 'force-dynamic'
 
@@ -14,6 +15,7 @@ export default async function ProductsPage({
   searchParams: { page?: string; search?: string; category?: string }
 }) {
   const session = await auth()
+  const scope = { storeId: getSessionStoreId(session) }
   const { t } = getServerI18n()
   const page = Number(searchParams.page ?? 1)
   const search = searchParams.search
@@ -27,6 +29,7 @@ export default async function ProductsPage({
   try {
     const result = await productsService.list(
       { page, limit: 12, search, category },
+      scope,
       { includeFinancials: session?.user?.role === 'ADMIN' },
     )
     products = result.products ?? []
@@ -37,7 +40,7 @@ export default async function ProductsPage({
   }
 
   try {
-    const list = await brandsService.listAll()
+    const list = await brandsService.listAll(scope)
     allBrands = (list as { id: string; name: string }[]).map((b) => ({ id: b.id, name: b.name }))
   } catch (e) {
     console.error('[ProductsPage] brands load error:', e)

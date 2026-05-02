@@ -1,5 +1,6 @@
 import bcrypt from 'bcryptjs'
 import { db } from '@/lib/db'
+import { StoreScope } from '@/lib/store-context'
 import { Role } from '@prisma/client'
 import { paginate, paginationMeta } from '@/lib/utils'
 
@@ -18,8 +19,9 @@ interface UpdateUserParams {
 }
 
 export class UsersService {
-  async list({ page = 1, limit = 20, search, role }: ListUsersParams) {
+  async list({ page = 1, limit = 20, search, role }: ListUsersParams, scope: StoreScope) {
     const where = {
+      storeId: scope.storeId,
       ...(search && {
         OR: [
           { name: { contains: search, mode: 'insensitive' as const } },
@@ -50,9 +52,9 @@ export class UsersService {
     return { users, meta: paginationMeta(total, page, limit) }
   }
 
-  async findById(id: string) {
-    return db.user.findUnique({
-      where: { id },
+  async findById(id: string, scope: StoreScope) {
+    return db.user.findFirst({
+      where: { id, storeId: scope.storeId },
       select: {
         id: true,
         name: true,
@@ -66,7 +68,7 @@ export class UsersService {
     })
   }
 
-  async update(id: string, data: UpdateUserParams) {
+  async update(id: string, data: UpdateUserParams, scope: StoreScope) {
     if (data.email) {
       const conflict = await db.user.findFirst({
         where: { email: data.email.toLowerCase(), NOT: { id } },
@@ -75,7 +77,7 @@ export class UsersService {
     }
 
     return db.user.update({
-      where: { id },
+      where: { id, storeId: scope.storeId },
       data: {
         ...(data.name && { name: data.name.trim() }),
         ...(data.email && { email: data.email.toLowerCase() }),
@@ -111,10 +113,10 @@ export class UsersService {
     })
   }
 
-  async delete(id: string, requesterId: string) {
+  async delete(id: string, requesterId: string, scope: StoreScope) {
     if (id === requesterId) throw new Error('Cannot delete your own account')
 
-    return db.user.delete({ where: { id } })
+    return db.user.delete({ where: { id, storeId: scope.storeId } })
   }
 }
 

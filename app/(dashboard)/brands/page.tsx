@@ -2,17 +2,19 @@ import { auth } from '@/lib/auth'
 import { brandsService } from '@/modules/brands/brands.service'
 import { BrandsClient } from './brands-client'
 import { getServerI18n } from '@/lib/i18n/server'
+import { getSessionStoreId } from '@/lib/store-context'
 
 export const dynamic = 'force-dynamic'
 
 export default async function BrandsPage() {
   const session = await auth()
+  const scope = { storeId: getSessionStoreId(session) }
   const { t } = getServerI18n()
 
   let brands: any[] = []
   let loadError: string | null = null
   try {
-    const result = await brandsService.list({ page: 1, limit: 100 })
+    const result = await brandsService.list({ page: 1, limit: 100 }, scope)
     brands = result.brands ?? []
   } catch (e) {
     loadError = e instanceof Error ? e.message : 'Failed to load brands'

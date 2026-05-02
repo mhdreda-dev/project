@@ -2,6 +2,7 @@ import { db } from '@/lib/db'
 import { ActivityAction, Prisma } from '@prisma/client'
 
 interface LogActivityParams {
+  storeId?: string
   userId?: string
   action: ActivityAction
   entity: string
@@ -17,6 +18,7 @@ export async function logActivity(params: LogActivityParams): Promise<void> {
   try {
     await db.activityLog.create({
       data: {
+        storeId: params.storeId ?? null,
         userId: params.userId ?? null,
         action: params.action,
         entity: params.entity,

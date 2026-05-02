@@ -1,4 +1,5 @@
 import { db } from '@/lib/db'
+import { StoreScope } from '@/lib/store-context'
 import { RewardActionType, Prisma } from '@prisma/client'
 
 const PRODUCT_ADDED_REWARD_MAD = 1
@@ -17,9 +18,10 @@ function toNumber(value: Prisma.Decimal | number | null | undefined) {
 }
 
 export class RewardsService {
-  createProductAddedEvent(tx: RewardTx, userId: string, productId: string) {
+  createProductAddedEvent(tx: RewardTx, userId: string, productId: string, storeId: string) {
     return tx.rewardEvent.create({
       data: {
+        storeId,
         userId,
         productId,
         actionType: RewardActionType.PRODUCT_ADDED,
@@ -29,9 +31,10 @@ export class RewardsService {
     })
   }
 
-  createProductSoldEvent(tx: RewardTx, userId: string, productId: string, quantity: number) {
+  createProductSoldEvent(tx: RewardTx, userId: string, productId: string, quantity: number, storeId: string) {
     return tx.rewardEvent.create({
       data: {
+        storeId,
         userId,
         productId,
         actionType: RewardActionType.PRODUCT_SOLD,
@@ -41,36 +44,36 @@ export class RewardsService {
     })
   }
 
-  async getEmployeeSummary(userId: string) {
+  async getEmployeeSummary(userId: string, scope: StoreScope) {
     const today = startOfToday()
 
     const [total, todayTotal, added, sold, addedToday, soldToday, latestEvents] = await Promise.all([
       db.rewardEvent.aggregate({
-        where: { userId },
+        where: { userId, storeId: scope.storeId },
         _sum: { rewardAmountMAD: true },
       }),
       db.rewardEvent.aggregate({
-        where: { userId, createdAt: { gte: today } },
+        where: { userId, storeId: scope.storeId, createdAt: { gte: today } },
         _sum: { rewardAmountMAD: true },
       }),
       db.rewardEvent.aggregate({
-        where: { userId, actionType: RewardActionType.PRODUCT_ADDED },
+        where: { userId, storeId: scope.storeId, actionType: RewardActionType.PRODUCT_ADDED },
         _sum: { quantity: true },
       }),
       db.rewardEvent.aggregate({
-        where: { userId, actionType: RewardActionType.PRODUCT_SOLD },
+        where: { userId, storeId: scope.storeId, actionType: RewardActionType.PRODUCT_SOLD },
         _sum: { quantity: true },
       }),
       db.rewardEvent.aggregate({
-        where: { userId, actionType: RewardActionType.PRODUCT_ADDED, createdAt: { gte: today } },
+        where: { userId, storeId: scope.storeId, actionType: RewardActionType.PRODUCT_ADDED, createdAt: { gte: today } },
         _sum: { quantity: true },
       }),
       db.rewardEvent.aggregate({
-        where: { userId, actionType: RewardActionType.PRODUCT_SOLD, createdAt: { gte: today } },
+        where: { userId, storeId: scope.storeId, actionType: RewardActionType.PRODUCT_SOLD, createdAt: { gte: today } },
         _sum: { quantity: true },
       }),
       db.rewardEvent.findMany({
-        where: { userId },
+        where: { userId, storeId: scope.storeId },
         take: 5,
         orderBy: { createdAt: 'desc' },
         include: { product: { select: { name: true, sku: true } } },
@@ -91,9 +94,9 @@ export class RewardsService {
     }
   }
 
-  async getLeaderboard() {
+  async getLeaderboard(scope: StoreScope) {
     const users = await db.user.findMany({
-      where: { role: 'EMPLOYEE' },
+      where: { role: 'EMPLOYEE', storeId: scope.storeId },
       select: {
         id: true,
         name: true,
@@ -109,16 +112,17 @@ export class RewardsService {
 
     const totals = await db.rewardEvent.groupBy({
       by: ['userId'],
+      where: { storeId: scope.storeId },
       _sum: { rewardAmountMAD: true, quantity: true },
     })
     const added = await db.rewardEvent.groupBy({
       by: ['userId'],
-      where: { actionType: RewardActionType.PRODUCT_ADDED },
+      where: { storeId: scope.storeId, actionType: RewardActionType.PRODUCT_ADDED },
       _sum: { quantity: true },
     })
     const sold = await db.rewardEvent.groupBy({
       by: ['userId'],
-      where: { actionType: RewardActionType.PRODUCT_SOLD },
+      where: { storeId: scope.storeId, actionType: RewardActionType.PRODUCT_SOLD },
       _sum: { quantity: true },
     })
 

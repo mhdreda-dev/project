@@ -1,4 +1,5 @@
 import { db } from '@/lib/db'
+import { StoreScope } from '@/lib/store-context'
 import { ActivityAction } from '@prisma/client'
 import { paginate, paginationMeta } from '@/lib/utils'
 
@@ -13,10 +14,11 @@ interface LogsQuery {
 }
 
 export class LogsService {
-  async list(query: LogsQuery) {
+  async list(query: LogsQuery, scope: StoreScope) {
     const { page = 1, limit = 20, userId, action, entity, from, to } = query
 
     const where = {
+      storeId: scope.storeId,
       ...(userId && { userId }),
       ...(action && { action }),
       ...(entity && { entity }),

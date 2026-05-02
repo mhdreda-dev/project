@@ -2,12 +2,14 @@ import { NextRequest } from 'next/server'
 import { auth } from '@/lib/auth'
 import { logsService } from '@/modules/logs/logs.service'
 import { apiSuccess, apiError } from '@/lib/utils'
+import { getSessionStoreId } from '@/lib/store-context'
 import { ActivityAction } from '@prisma/client'
 
 export async function GET(req: NextRequest) {
   const session = await auth()
   if (!session) return apiError('Unauthorized', 401)
   if (session.user.role !== 'ADMIN') return apiError('Forbidden', 403)
+  const scope = { storeId: getSessionStoreId(session) }
 
   const { searchParams } = req.nextUrl
   const page = Number(searchParams.get('page') ?? 1)
@@ -19,7 +21,7 @@ export async function GET(req: NextRequest) {
   const to = searchParams.get('to') ?? undefined
 
   try {
-    const result = await logsService.list({ page, limit, userId, action, entity, from, to })
+    const result = await logsService.list({ page, limit, userId, action, entity, from, to }, scope)
     return apiSuccess(result)
   } catch {
     return apiError('Failed to fetch logs', 500)

@@ -1,11 +1,12 @@
 import { db } from '@/lib/db'
 import { paginate, paginationMeta } from '@/lib/utils'
+import { StoreScope } from '@/lib/store-context'
 import { StockMovementInput, StockQuery } from '@/lib/validations/stock'
 import { rewardsService } from '@/modules/rewards/rewards.service'
 import { MovementType } from '@prisma/client'
 
 export class StockService {
-  async recordMovement(input: StockMovementInput, userId: string) {
+  async recordMovement(input: StockMovementInput, userId: string, scope: StoreScope) {
     return db.$transaction(async (tx) => {
       // Lock the size row for update
       const size = await tx.productSize.findUnique({
@@ -13,7 +14,7 @@ export class StockService {
         include: { product: true },
       })
 
-      if (!size) throw new Error('Product size not found')
+      if (!size || size.product.storeId !== scope.storeId) throw new Error('Product size not found')
       if (!size.product.isActive || size.product.deletedAt) throw new Error('Product is not active')
 
       let newQty: number
@@ -43,6 +44,7 @@ export class StockService {
       // Record movement
       const movement = await tx.stockMovement.create({
         data: {
+          storeId: scope.storeId,
           productId: size.productId,
           productSizeId: size.id,
           userId,
@@ -61,17 +63,18 @@ export class StockService {
       })
 
       if (input.type === 'OUT') {
-        await rewardsService.createProductSoldEvent(tx, userId, size.productId, input.quantity)
+        await rewardsService.createProductSoldEvent(tx, userId, size.productId, input.quantity, scope.storeId)
       }
 
       return movement
     })
   }
 
-  async list(query: StockQuery) {
+  async list(query: StockQuery, scope: StoreScope) {
     const { page, limit, productId, type, from, to } = query
 
     const where = {
+      storeId: scope.storeId,
       ...(productId && { productId }),
       ...(type && { type: type as MovementType }),
       ...((from || to) && {
@@ -99,9 +102,9 @@ export class StockService {
     return { movements, meta: paginationMeta(total, page, limit) }
   }
 
-  async getLowStock() {
+  async getLowStock(scope: StoreScope) {
     const products = await db.product.findMany({
-      where: { isActive: true, deletedAt: null },
+      where: { storeId: scope.storeId, isActive: true, deletedAt: null },
       include: {
         sizes: true,
       },
@@ -129,7 +132,7 @@ export class StockService {
       )
   }
 
-  async getMovementChart(days = 30, productId?: string) {
+  async getMovementChart(days = 30, scope: StoreScope, productId?: string) {
     const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000)
 
     // Two branches so we don't have to conditionally inject SQL. Same shape.
@@ -143,6 +146,7 @@ export class StockService {
           JOIN products p ON p.id = sm."productId"
           WHERE sm."createdAt" >= ${since}
             AND sm."productId" = ${productId}
+            AND sm."storeId" = ${scope.storeId}
             AND p."isActive" = true
             AND p."deletedAt" IS NULL
           GROUP BY DATE(sm."createdAt")
@@ -156,6 +160,7 @@ export class StockService {
           FROM stock_movements sm
           JOIN products p ON p.id = sm."productId"
           WHERE sm."createdAt" >= ${since}
+            AND sm."storeId" = ${scope.storeId}
             AND p."isActive" = true
             AND p."deletedAt" IS NULL
           GROUP BY DATE(sm."createdAt")
@@ -179,8 +184,9 @@ export class StockService {
     type?: MovementType
     from?: string
     to?: string
-  }) {
+  }, scope: StoreScope) {
     const where = {
+      storeId: scope.storeId,
       ...(filters.productId && { productId: filters.productId }),
       ...(filters.type && { type: filters.type }),
       ...((filters.from || filters.to) && {

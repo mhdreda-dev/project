@@ -17,17 +17,19 @@ import {
 } from 'lucide-react'
 import { DashboardChart } from '@/components/dashboard/dashboard-chart'
 import { getServerI18n } from '@/lib/i18n/server'
+import { getSessionStoreId } from '@/lib/store-context'
 
 export default async function DashboardPage() {
   const session = await auth()
   const { t } = getServerI18n()
   const isAdmin = session?.user?.role === 'ADMIN'
+  const scope = { storeId: getSessionStoreId(session) }
 
   const [stats, lowStock, recentMovements, rewardSummary] = await Promise.all([
-    isAdmin ? productsService.getDashboardStats() : productsService.getOperationalDashboardStats(),
-    reportsService.getLowStockProducts(),
-    reportsService.getRecentStockMovements(5),
-    rewardsService.getEmployeeSummary(session?.user?.id ?? ''),
+    isAdmin ? productsService.getDashboardStats(scope) : productsService.getOperationalDashboardStats(scope),
+    reportsService.getLowStockProducts(scope),
+    reportsService.getRecentStockMovements(scope, 5),
+    rewardsService.getEmployeeSummary(session?.user?.id ?? '', scope),
   ])
 
   return (

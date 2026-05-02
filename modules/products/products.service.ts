@@ -1,5 +1,6 @@
 import { db } from '@/lib/db'
 import { paginate, paginationMeta } from '@/lib/utils'
+import { DEFAULT_STORE_ID, StoreScope } from '@/lib/store-context'
 import { CreateProductInput, UpdateProductInput, ProductQuery } from '@/lib/validations/product'
 import { rewardsService } from '@/modules/rewards/rewards.service'
 
@@ -35,11 +36,18 @@ function hideFinancialProductFields<T extends Record<string, any> | null | undef
   return out as T
 }
 
+function brandStoreWhere(storeId: string) {
+  return storeId === DEFAULT_STORE_ID
+    ? { OR: [{ storeId }, { storeId: null }] }
+    : { storeId }
+}
+
 export class ProductsService {
-  async list(query: ProductQuery, options: { includeFinancials?: boolean } = {}) {
+  async list(query: ProductQuery, scope: StoreScope, options: { includeFinancials?: boolean } = {}) {
     const { page, limit, search, category, isActive, brandId } = query
 
     const where = {
+      storeId: scope.storeId,
       deletedAt: null,
       ...(search && {
         OR: [
@@ -50,7 +58,7 @@ export class ProductsService {
       }),
       ...(category && { category: { equals: category, mode: 'insensitive' as const } }),
       ...(isActive !== undefined && { isActive }),
-      ...(brandId && { brandId }),
+      ...(brandId && { brandId, brand: brandStoreWhere(scope.storeId) }),
     }
 
     const [products, total] = await Promise.all([
@@ -79,8 +87,9 @@ export class ProductsService {
    * Includes totalStock (aggregated across sizes) because that's the column
    * operators expect in the export.
    */
-  async listAll(filters: { search?: string; category?: string; brandId?: string; isActive?: boolean }) {
+  async listAll(filters: { search?: string; category?: string; brandId?: string; isActive?: boolean }, scope: StoreScope) {
     const where = {
+      storeId: scope.storeId,
       deletedAt: null,
       ...(filters.search && {
         OR: [
@@ -90,7 +99,7 @@ export class ProductsService {
         ],
       }),
       ...(filters.category && { category: { equals: filters.category, mode: 'insensitive' as const } }),
-      ...(filters.brandId && { brandId: filters.brandId }),
+      ...(filters.brandId && { brandId: filters.brandId, brand: brandStoreWhere(scope.storeId) }),
       ...(filters.isActive !== undefined && { isActive: filters.isActive }),
     }
     const rows = await db.product.findMany({
@@ -105,9 +114,9 @@ export class ProductsService {
     return rows.map(serializeProduct)
   }
 
-  async findById(id: string, options: { includeFinancials?: boolean } = {}) {
+  async findById(id: string, scope: StoreScope, options: { includeFinancials?: boolean } = {}) {
     const p = await db.product.findFirst({
-      where: { id, deletedAt: null },
+      where: { id, storeId: scope.storeId, deletedAt: null },
       include: {
         sizes: { orderBy: { size: 'asc' } },
         brand: { select: { id: true, name: true } },
@@ -122,13 +131,22 @@ export class ProductsService {
     return options.includeFinancials ? product : hideFinancialProductFields(product)
   }
 
-  async create(input: CreateProductInput, userId?: string) {
+  async create(input: CreateProductInput, scope: StoreScope, userId?: string) {
     const existingSku = await db.product.findUnique({ where: { sku: input.sku } })
     if (existingSku) throw new Error(`SKU "${input.sku}" already exists`)
 
     return db.$transaction(async (tx) => {
+      if (input.brandId) {
+        const brand = await tx.brand.findFirst({
+          where: { id: input.brandId, ...brandStoreWhere(scope.storeId), isActive: true },
+          select: { id: true },
+        })
+        if (!brand) throw new Error('Brand not found')
+      }
+
       const product = await tx.product.create({
         data: {
+          storeId: scope.storeId,
           name: input.name,
           description: input.description ?? null,
           sku: input.sku.toUpperCase(),
@@ -150,15 +168,15 @@ export class ProductsService {
       })
 
       if (userId) {
-        await rewardsService.createProductAddedEvent(tx, userId, product.id)
+        await rewardsService.createProductAddedEvent(tx, userId, product.id, scope.storeId)
       }
 
       return serializeProduct(product)
     })
   }
 
-  async update(id: string, input: UpdateProductInput) {
-    const product = await db.product.findFirst({ where: { id, deletedAt: null } })
+  async update(id: string, input: UpdateProductInput, scope: StoreScope) {
+    const product = await db.product.findFirst({ where: { id, storeId: scope.storeId, deletedAt: null } })
     if (!product) throw new Error('Product not found')
 
     if (input.sku && input.sku !== product.sku) {
@@ -169,6 +187,14 @@ export class ProductsService {
     }
 
     return db.$transaction(async (tx) => {
+      if (input.brandId) {
+        const brand = await tx.brand.findFirst({
+          where: { id: input.brandId, ...brandStoreWhere(scope.storeId), isActive: true },
+          select: { id: true },
+        })
+        if (!brand) throw new Error('Brand not found')
+      }
+
       const updated = await tx.product.update({
         where: { id },
         data: {
@@ -216,8 +242,8 @@ export class ProductsService {
     })
   }
 
-  async delete(id: string) {
-    const product = await db.product.findFirst({ where: { id, deletedAt: null } })
+  async delete(id: string, scope: StoreScope) {
+    const product = await db.product.findFirst({ where: { id, storeId: scope.storeId, deletedAt: null } })
     if (!product) throw new Error('Product not found')
 
     return db.$transaction(async (tx) => {
@@ -231,27 +257,28 @@ export class ProductsService {
     })
   }
 
-  async getCategories(): Promise<string[]> {
+  async getCategories(scope: StoreScope): Promise<string[]> {
     const result = await db.product.groupBy({
       by: ['category'],
-      where: { category: { not: null }, isActive: true, deletedAt: null },
+      where: { storeId: scope.storeId, category: { not: null }, isActive: true, deletedAt: null },
       orderBy: { category: 'asc' },
     })
     return result.map((r) => r.category!).filter(Boolean)
   }
 
-  async getDashboardStats() {
+  async getDashboardStats(scope: StoreScope) {
     const [totalProducts, totalSizes, recentMovements, lowStockCount, inventoryValue] = await Promise.all([
-      db.product.count({ where: { isActive: true, deletedAt: null } }),
+      db.product.count({ where: { storeId: scope.storeId, isActive: true, deletedAt: null } }),
       db.productSize.aggregate({
         _sum: { quantity: true },
-        where: { product: { isActive: true, deletedAt: null } },
+        where: { product: { storeId: scope.storeId, isActive: true, deletedAt: null } },
       }),
       db.stockMovement.count({
         where: {
           createdAt: {
             gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
           },
+          storeId: scope.storeId,
         },
       }),
       // low-stock: product whose total qty across sizes <= product.lowStockThreshold
@@ -260,7 +287,7 @@ export class ProductsService {
           SELECT p.id, COALESCE(SUM(ps.quantity), 0) AS qty, p."lowStockThreshold" AS threshold
           FROM products p
           LEFT JOIN product_sizes ps ON ps."productId" = p.id
-          WHERE p."isActive" = true AND p."deletedAt" IS NULL
+          WHERE p."storeId" = ${scope.storeId} AND p."isActive" = true AND p."deletedAt" IS NULL
           GROUP BY p.id
         ) agg
         WHERE agg.qty <= agg.threshold
@@ -275,7 +302,7 @@ export class ProductsService {
           )::text AS expected_profit
         FROM product_sizes ps
         JOIN products p ON p.id = ps."productId"
-        WHERE p."isActive" = true AND p."deletedAt" IS NULL
+        WHERE p."storeId" = ${scope.storeId} AND p."isActive" = true AND p."deletedAt" IS NULL
       `,
     ])
 
@@ -294,18 +321,19 @@ export class ProductsService {
     }
   }
 
-  async getOperationalDashboardStats() {
+  async getOperationalDashboardStats(scope: StoreScope) {
     const [totalProducts, totalSizes, recentMovements, lowStockCount] = await Promise.all([
-      db.product.count({ where: { isActive: true, deletedAt: null } }),
+      db.product.count({ where: { storeId: scope.storeId, isActive: true, deletedAt: null } }),
       db.productSize.aggregate({
         _sum: { quantity: true },
-        where: { product: { isActive: true, deletedAt: null } },
+        where: { product: { storeId: scope.storeId, isActive: true, deletedAt: null } },
       }),
       db.stockMovement.count({
         where: {
           createdAt: {
             gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
           },
+          storeId: scope.storeId,
         },
       }),
       db.$queryRaw<[{ count: bigint }]>`
@@ -313,7 +341,7 @@ export class ProductsService {
           SELECT p.id, COALESCE(SUM(ps.quantity), 0) AS qty, p."lowStockThreshold" AS threshold
           FROM products p
           LEFT JOIN product_sizes ps ON ps."productId" = p.id
-          WHERE p."isActive" = true AND p."deletedAt" IS NULL
+          WHERE p."storeId" = ${scope.storeId} AND p."isActive" = true AND p."deletedAt" IS NULL
           GROUP BY p.id
         ) agg
         WHERE agg.qty <= agg.threshold

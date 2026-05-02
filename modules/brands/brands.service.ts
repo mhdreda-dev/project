@@ -1,5 +1,6 @@
 import { db } from '@/lib/db'
 import { paginate, paginationMeta } from '@/lib/utils'
+import { DEFAULT_STORE_ID, StoreScope } from '@/lib/store-context'
 import { CreateBrandInput, UpdateBrandInput, BrandQuery } from '@/lib/validations/brand'
 
 function toSlug(name: string): string {
@@ -11,11 +12,19 @@ function toSlug(name: string): string {
     .trim()
 }
 
+function brandStoreWhere(scope?: StoreScope) {
+  if (!scope) return {}
+  return scope.storeId === DEFAULT_STORE_ID
+    ? { OR: [{ storeId: scope.storeId }, { storeId: null }] }
+    : { storeId: scope.storeId }
+}
+
 export class BrandsService {
-  async list(query: BrandQuery) {
+  async list(query: BrandQuery, scope?: StoreScope) {
     const { page, limit, search, isActive } = query
 
     const where = {
+      ...brandStoreWhere(scope),
       ...(search && {
         OR: [
           { name: { contains: search, mode: 'insensitive' as const } },
@@ -38,17 +47,17 @@ export class BrandsService {
     return { brands, meta: paginationMeta(total, page, limit) }
   }
 
-  async listAll() {
+  async listAll(scope?: StoreScope) {
     return db.brand.findMany({
-      where: { isActive: true },
+      where: { isActive: true, ...brandStoreWhere(scope) },
       select: { id: true, name: true, slug: true },
       orderBy: { name: 'asc' },
     })
   }
 
-  async findById(id: string) {
-    return db.brand.findUnique({
-      where: { id },
+  async findById(id: string, scope?: StoreScope) {
+    return db.brand.findFirst({
+      where: { id, ...brandStoreWhere(scope) },
       include: {
         _count: { select: { products: { where: { deletedAt: null } } } },
         products: {
@@ -61,7 +70,7 @@ export class BrandsService {
     })
   }
 
-  async create(input: CreateBrandInput) {
+  async create(input: CreateBrandInput, storeId?: string) {
     const slug = input.slug || toSlug(input.name)
 
     const [existingName, existingSlug] = await Promise.all([
@@ -73,6 +82,7 @@ export class BrandsService {
 
     return db.brand.create({
       data: {
+        storeId: storeId ?? null,
         name: input.name,
         slug,
         logoUrl: input.logoUrl || null,
@@ -82,8 +92,8 @@ export class BrandsService {
     })
   }
 
-  async update(id: string, input: UpdateBrandInput) {
-    const brand = await db.brand.findUnique({ where: { id } })
+  async update(id: string, input: UpdateBrandInput, scope?: StoreScope) {
+    const brand = await db.brand.findFirst({ where: { id, ...brandStoreWhere(scope) } })
     if (!brand) throw new Error('Brand not found')
 
     const slug = input.slug ?? (input.name ? toSlug(input.name) : undefined)
@@ -108,9 +118,9 @@ export class BrandsService {
     })
   }
 
-  async delete(id: string) {
-    const brand = await db.brand.findUnique({
-      where: { id },
+  async delete(id: string, scope?: StoreScope) {
+    const brand = await db.brand.findFirst({
+      where: { id, ...brandStoreWhere(scope) },
       include: { _count: { select: { products: true } } },
     })
     if (!brand) throw new Error('Brand not found')

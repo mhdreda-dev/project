@@ -4,7 +4,7 @@ import { RegisterInput } from '@/lib/validations/auth'
 import { Role } from '@prisma/client'
 
 export class AuthService {
-  async register(input: RegisterInput) {
+  async register(input: RegisterInput, storeId?: string) {
     const existing = await db.user.findUnique({
       where: { email: input.email.toLowerCase() },
     })
@@ -17,6 +17,7 @@ export class AuthService {
 
     const user = await db.user.create({
       data: {
+        storeId: storeId ?? null,
         name: input.name.trim(),
         email: input.email.toLowerCase(),
         password: hashed,
@@ -27,6 +28,7 @@ export class AuthService {
         name: true,
         email: true,
         role: true,
+        storeId: true,
         createdAt: true,
       },
     })
