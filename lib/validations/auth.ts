@@ -10,6 +10,12 @@ export const loginSchema = z.object({
     .string()
     .min(1, 'Password is required')
     .max(128),
+  storeSlug: z
+    .string()
+    .max(100)
+    .regex(/^[a-z0-9-]+$/, 'Invalid store slug')
+    .optional()
+    .or(z.literal('')),
 })
 
 export const registerSchema = z.object({

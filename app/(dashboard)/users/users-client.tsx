@@ -9,7 +9,6 @@ import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { toast } from '@/hooks/use-toast'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import { Role } from '@prisma/client'
@@ -221,7 +220,6 @@ function LeaderboardMetric({ label, value, strong }: { label: string; value: str
 
 function CreateUserDialog({ open, onClose, onSuccess }: { open: boolean; onClose: () => void; onSuccess: () => void }) {
   const [loading, setLoading] = useState(false)
-  const [role, setRole] = useState('EMPLOYEE')
   const { t } = useI18n()
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -232,7 +230,7 @@ function CreateUserDialog({ open, onClose, onSuccess }: { open: boolean; onClose
       name: form.get('name'),
       email: form.get('email'),
       password: form.get('password'),
-      role,
+      role: 'EMPLOYEE',
     }
 
     try {
@@ -269,16 +267,9 @@ function CreateUserDialog({ open, onClose, onSuccess }: { open: boolean; onClose
             <Label>{t('common.labels.password')} *</Label>
             <Input name="password" type="password" placeholder={t('common.placeholders.passwordInvite')} required />
           </div>
-          <div className="space-y-1">
-            <Label>{t('common.labels.role')}</Label>
-            <Select value={role} onValueChange={setRole}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="EMPLOYEE">{t('common.roles.employee')}</SelectItem>
-                <SelectItem value="ADMIN">{t('common.roles.admin')}</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          <p className="rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-600">
+            New users are created as employees for your current store.
+          </p>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={onClose}>{t('common.actions.cancel')}</Button>
             <Button type="submit" disabled={loading}>

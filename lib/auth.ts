@@ -16,12 +16,23 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       credentials: {
         email: { label: 'Email', type: 'email' },
         password: { label: 'Password', type: 'password' },
+        storeSlug: { label: 'Store', type: 'text' },
       },
       async authorize(credentials) {
         const parsed = loginSchema.safeParse(credentials)
         if (!parsed.success) return null
 
         const { email, password } = parsed.data
+        const storeSlug = parsed.data.storeSlug?.trim().toLowerCase()
+
+        const store = storeSlug
+          ? await db.store.findUnique({
+              where: { slug: storeSlug },
+              select: { id: true, isActive: true },
+            })
+          : null
+
+        if (storeSlug && (!store || !store.isActive)) return null
 
         const user = await db.user.findUnique({
           where: { email: email.toLowerCase() },
@@ -37,6 +48,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         })
 
         if (!user || !user.isActive) return null
+
+        if (user.role !== 'SUPER_ADMIN') {
+          if (!store || user.storeId !== store.id) return null
+        }
 
         const isValid = await bcrypt.compare(password, user.password)
         if (!isValid) return null

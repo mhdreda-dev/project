@@ -1,11 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { signIn } from 'next-auth/react'
-import { useRouter } from 'next/navigation'
-import Link from 'next/link'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Eye, EyeOff, Package, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -17,8 +16,13 @@ import { useI18n } from '@/components/i18n-provider'
 
 export default function LoginPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const storeSlug = searchParams.get('store')?.trim().toLowerCase() ?? ''
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [storeName, setStoreName] = useState<string | null>(null)
+  const [storeError, setStoreError] = useState<string | null>(null)
+  const [resolvingStore, setResolvingStore] = useState(false)
   const { t } = useI18n()
 
   const {
@@ -27,19 +31,59 @@ export default function LoginPage() {
     formState: { errors },
   } = useForm<LoginInput>({ resolver: zodResolver(loginSchema) })
 
+  useEffect(() => {
+    let cancelled = false
+
+    async function resolveStore() {
+      setStoreName(null)
+      setStoreError(null)
+
+      if (!storeSlug) return
+
+      setResolvingStore(true)
+      try {
+        const res = await fetch(`/api/tenant/resolve?store=${encodeURIComponent(storeSlug)}`)
+        const json = await res.json()
+        if (cancelled) return
+        if (!res.ok) {
+          setStoreError(json.error || 'Store not found or inactive')
+          return
+        }
+        setStoreName(json.data?.store?.name ?? null)
+      } catch {
+        if (!cancelled) setStoreError('Unable to resolve store')
+      } finally {
+        if (!cancelled) setResolvingStore(false)
+      }
+    }
+
+    resolveStore()
+    return () => {
+      cancelled = true
+    }
+  }, [storeSlug])
+
   async function onSubmit(data: LoginInput) {
+    if (storeError) {
+      toast({ title: 'Invalid store', description: storeError, variant: 'destructive' })
+      return
+    }
+
     setIsLoading(true)
     try {
       const result = await signIn('credentials', {
         email: data.email,
         password: data.password,
+        storeSlug,
         redirect: false,
       })
 
       if (result?.error) {
         toast({
           title: t('auth.login.failedTitle'),
-          description: t('auth.login.failedDescription'),
+          description: storeSlug
+            ? 'Check your credentials and store access.'
+            : 'Platform owner login is available only for SUPER_ADMIN accounts.',
           variant: 'destructive',
         })
         return
@@ -62,9 +106,22 @@ export default function LoginPage() {
             </div>
           </div>
           <CardTitle className="text-2xl">StockMaster</CardTitle>
-          <CardDescription>{t('auth.login.description')}</CardDescription>
+          <CardDescription>
+            {storeSlug
+              ? resolvingStore
+                ? 'Resolving store...'
+                : storeName
+                  ? `Sign in to ${storeName}`
+                  : storeError ?? 'Store sign in'
+              : 'Platform owner sign in'}
+          </CardDescription>
         </CardHeader>
         <CardContent>
+          {storeError && (
+            <div className="mb-4 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+              {storeError}
+            </div>
+          )}
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div className="space-y-1">
               <Label htmlFor="email">{t('common.labels.email')}</Label>
@@ -101,7 +158,7 @@ export default function LoginPage() {
               )}
             </div>
 
-            <Button type="submit" className="w-full" disabled={isLoading}>
+            <Button type="submit" className="w-full" disabled={isLoading || resolvingStore || Boolean(storeError)}>
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -114,10 +171,7 @@ export default function LoginPage() {
           </form>
 
           <div className="mt-4 text-center text-sm text-muted-foreground">
-            {t('auth.login.noAccount')}{' '}
-            <Link href="/register" className="text-primary hover:underline font-medium">
-              {t('common.actions.register')}
-            </Link>
+            Access is invite-only. Ask your store administrator for an account.
           </div>
 
           

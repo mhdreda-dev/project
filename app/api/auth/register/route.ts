@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server'
 import { registerSchema } from '@/lib/validations/auth'
 import { auth } from '@/lib/auth'
-import { DEFAULT_STORE_ID, getSessionStoreId } from '@/lib/store-context'
+import { getSessionStoreId } from '@/lib/store-context'
 import { authService } from '@/modules/auth/auth.service'
 import { logActivity } from '@/lib/activity-logger'
 import { apiSuccess, apiError, getClientIp } from '@/lib/utils'
@@ -10,6 +10,9 @@ import { ActivityAction } from '@prisma/client'
 export async function POST(req: NextRequest) {
   try {
     const session = await auth()
+    if (!session) return apiError('Invite-only registration is required', 403)
+    if (session.user.role !== 'ADMIN') return apiError('Forbidden', 403)
+
     const body = await req.json()
     const parsed = registerSchema.safeParse(body)
 
@@ -17,13 +20,8 @@ export async function POST(req: NextRequest) {
       return apiError(parsed.error.errors[0].message, 422)
     }
 
-    const storeId = session?.user.role === 'ADMIN'
-      ? getSessionStoreId(session)
-      : DEFAULT_STORE_ID
-    const input = session?.user.role === 'ADMIN'
-      ? parsed.data
-      : { ...parsed.data, role: 'EMPLOYEE' as const }
-    const user = await authService.register(input, storeId)
+    const storeId = getSessionStoreId(session)
+    const user = await authService.register({ ...parsed.data, role: 'EMPLOYEE' }, storeId)
 
     await logActivity({
       storeId,
