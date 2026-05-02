@@ -1,0 +1,4 @@
+ALTER TYPE "Role" ADD VALUE 'SUPER_ADMIN';
+
+ALTER TABLE "stores" ADD COLUMN "phone" TEXT;
+ALTER TABLE "stores" ADD COLUMN "address" TEXT;

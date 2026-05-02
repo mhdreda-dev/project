@@ -22,6 +22,7 @@ export function Topbar() {
     '/users': t('shell.sidebar.users'),
     '/logs': t('shell.sidebar.logs'),
     '/reports': t('shell.sidebar.reports'),
+    '/stores': 'Stores',
   }
 
   const title =

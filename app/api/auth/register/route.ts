@@ -20,7 +20,10 @@ export async function POST(req: NextRequest) {
     const storeId = session?.user.role === 'ADMIN'
       ? getSessionStoreId(session)
       : DEFAULT_STORE_ID
-    const user = await authService.register(parsed.data, storeId)
+    const input = session?.user.role === 'ADMIN'
+      ? parsed.data
+      : { ...parsed.data, role: 'EMPLOYEE' as const }
+    const user = await authService.register(input, storeId)
 
     await logActivity({
       storeId,

@@ -16,6 +16,7 @@ import {
   Tag,
   BarChart3,
   Bot,
+  Building2,
   ChevronRight,
   Menu,
 } from 'lucide-react'
@@ -30,6 +31,7 @@ type NavItem = {
   labelKey: string
   icon: React.ComponentType<{ className?: string }>
   adminOnly?: boolean
+  superAdminOnly?: boolean
 }
 
 type NavGroup = { labelKey: string; items: NavItem[] }
@@ -39,6 +41,7 @@ function NavContent({ onClose }: { onClose?: () => void }) {
   const { data: session } = useSession()
   const { t } = useI18n()
   const isAdmin = session?.user?.role === 'ADMIN'
+  const isSuperAdmin = session?.user?.role === 'SUPER_ADMIN'
 
   const navGroups: NavGroup[] = [
     {
@@ -61,6 +64,7 @@ function NavContent({ onClose }: { onClose?: () => void }) {
     {
       labelKey: 'shell.sidebar.administration',
       items: [
+        { href: '/stores', labelKey: 'Stores', icon: Building2, superAdminOnly: true },
         { href: '/users', labelKey: 'shell.sidebar.users', icon: Users, adminOnly: true },
         { href: '/logs', labelKey: 'shell.sidebar.logs', icon: ClipboardList, adminOnly: true },
       ],
@@ -85,7 +89,11 @@ function NavContent({ onClose }: { onClose?: () => void }) {
       {/* Nav groups */}
       <nav className="flex-1 py-4 px-3 overflow-y-auto space-y-5">
         {navGroups.map((group) => {
-          const visibleItems = group.items.filter((item) => !item.adminOnly || isAdmin)
+          const visibleItems = group.items.filter((item) => {
+            if (item.superAdminOnly) return isSuperAdmin
+            if (item.adminOnly) return isAdmin
+            return true
+          })
           if (!visibleItems.length) return null
 
           return (
@@ -118,7 +126,7 @@ function NavContent({ onClose }: { onClose?: () => void }) {
                           isActive ? 'text-white' : 'text-slate-400 group-hover:text-slate-600',
                         )}
                       />
-                      <span className="flex-1">{t(item.labelKey)}</span>
+                      <span className="flex-1">{item.labelKey === 'Stores' ? 'Stores' : t(item.labelKey)}</span>
                       {isActive && <ChevronRight className="h-3 w-3 text-blue-200" />}
                     </Link>
                   )
@@ -138,13 +146,17 @@ function NavContent({ onClose }: { onClose?: () => void }) {
           <div className="flex-1 min-w-0">
             <p className="text-sm font-semibold text-slate-800 truncate">{session?.user?.name}</p>
             <Badge
-              variant={isAdmin ? 'default' : 'secondary'}
+              variant={isAdmin || isSuperAdmin ? 'default' : 'secondary'}
               className={cn(
                 'text-[10px] px-1.5 py-0 font-medium',
-                isAdmin ? 'bg-blue-100 text-blue-700 hover:bg-blue-100' : '',
+                isAdmin || isSuperAdmin ? 'bg-blue-100 text-blue-700 hover:bg-blue-100' : '',
               )}
             >
-              {session?.user?.role === 'ADMIN' ? t('common.roles.admin') : t('common.roles.employee')}
+              {session?.user?.role === 'SUPER_ADMIN'
+                ? 'Super Admin'
+                : session?.user?.role === 'ADMIN'
+                  ? t('common.roles.admin')
+                  : t('common.roles.employee')}
             </Badge>
           </div>
         </div>

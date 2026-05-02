@@ -18,6 +18,7 @@ const ADMIN_ONLY_PATHS = [
   '/api/stock/export',
   '/api/stock/low/export',
 ]
+const SUPER_ADMIN_ONLY_PATHS = ['/stores', '/api/stores']
 
 export default auth(function middleware(req) {
   const { nextUrl } = req
@@ -35,6 +36,14 @@ export default auth(function middleware(req) {
 
   const isAdminOnly = ADMIN_ONLY_PATHS.some((p) => nextUrl.pathname.startsWith(p))
   if (isAdminOnly && session?.user?.role !== 'ADMIN') {
+    if (nextUrl.pathname.startsWith('/api')) {
+      return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 })
+    }
+    return NextResponse.redirect(new URL('/dashboard', req.url))
+  }
+
+  const isSuperAdminOnly = SUPER_ADMIN_ONLY_PATHS.some((p) => nextUrl.pathname.startsWith(p))
+  if (isSuperAdminOnly && session?.user?.role !== 'SUPER_ADMIN') {
     if (nextUrl.pathname.startsWith('/api')) {
       return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 })
     }

@@ -20,8 +20,21 @@ async function main() {
   })
 
   // ─── Users ───────────────────────────────────────────────
+  const superAdminPassword = await bcrypt.hash('SuperAdmin@123', 12)
   const adminPassword = await bcrypt.hash('Admin@123', 12)
   const employeePassword = await bcrypt.hash('Employee@123', 12)
+
+  const superAdmin = await prisma.user.upsert({
+    where: { email: 'owner@stockmaster.com' },
+    update: { role: Role.SUPER_ADMIN, isActive: true },
+    create: {
+      name: 'Platform Owner',
+      email: 'owner@stockmaster.com',
+      password: superAdminPassword,
+      role: Role.SUPER_ADMIN,
+      isActive: true,
+    },
+  })
 
   const admin = await prisma.user.upsert({
     where: { email: 'admin@stockmaster.com' },
@@ -47,7 +60,7 @@ async function main() {
     },
   })
 
-  console.log('✅ Users created:', admin.email, employee.email)
+  console.log('✅ Users created:', superAdmin.email, admin.email, employee.email)
 
   // ─── Products ────────────────────────────────────────────
   const products = [
@@ -180,6 +193,7 @@ async function main() {
   console.log('✅ Activity logs seeded')
   console.log('\n🎉 Seeding complete!')
   console.log('\n📋 Credentials:')
+  console.log('  Owner:    owner@stockmaster.com    / SuperAdmin@123')
   console.log('  Admin:    admin@stockmaster.com    / Admin@123')
   console.log('  Employee: employee@stockmaster.com / Employee@123')
 }

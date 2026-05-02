@@ -76,6 +76,8 @@ model Store {
   id              String           @id @default(cuid())
   name            String
   slug            String           @unique
+  phone           String?
+  address         String?
   isDefault       Boolean          @default(false)
   isActive        Boolean          @default(true)
   createdAt       DateTime         @default(now())
@@ -298,6 +300,7 @@ model AiLead {
 }
 
 enum Role {
+  SUPER_ADMIN
   ADMIN
   EMPLOYEE
 }
