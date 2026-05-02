@@ -27,6 +27,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           where: { email: email.toLowerCase() },
           select: {
             id: true,
+            storeId: true,
             name: true,
             email: true,
             password: true,
@@ -50,6 +51,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           name: user.name,
           email: user.email,
           role: user.role,
+          storeId: user.storeId,
         }
       },
     }),
@@ -59,6 +61,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 export type AuthSession = {
   user: {
     id: string
+    storeId: string | null
     name: string
     email: string
     role: Role

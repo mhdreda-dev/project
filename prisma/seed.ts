@@ -6,14 +6,28 @@ const prisma = new PrismaClient()
 async function main() {
   console.log('🌱 Seeding database...')
 
+  // ─── Default Store ───────────────────────────────────────
+  const defaultStore = await prisma.store.upsert({
+    where: { slug: 'benami' },
+    update: { isDefault: true, isActive: true },
+    create: {
+      id: 'default-store',
+      name: 'Benami',
+      slug: 'benami',
+      isDefault: true,
+      isActive: true,
+    },
+  })
+
   // ─── Users ───────────────────────────────────────────────
   const adminPassword = await bcrypt.hash('Admin@123', 12)
   const employeePassword = await bcrypt.hash('Employee@123', 12)
 
   const admin = await prisma.user.upsert({
     where: { email: 'admin@stockmaster.com' },
-    update: {},
+    update: { storeId: defaultStore.id },
     create: {
+      storeId: defaultStore.id,
       name: 'Admin User',
       email: 'admin@stockmaster.com',
       password: adminPassword,
@@ -23,8 +37,9 @@ async function main() {
 
   const employee = await prisma.user.upsert({
     where: { email: 'employee@stockmaster.com' },
-    update: {},
+    update: { storeId: defaultStore.id },
     create: {
+      storeId: defaultStore.id,
       name: 'John Employee',
       email: 'employee@stockmaster.com',
       password: employeePassword,
@@ -104,8 +119,9 @@ async function main() {
 
     const product = await prisma.product.upsert({
       where: { sku: productFields.sku },
-      update: {},
+      update: { storeId: defaultStore.id },
       create: {
+        storeId: defaultStore.id,
         ...productFields,
         sizes: {
           create: sizes,
@@ -122,6 +138,7 @@ async function main() {
       if (size.quantity > 0) {
         await prisma.stockMovement.create({
           data: {
+            storeId: defaultStore.id,
             productId: product.id,
             productSizeId: size.id,
             userId: admin.id,
@@ -143,6 +160,7 @@ async function main() {
   await prisma.activityLog.createMany({
     data: [
       {
+        storeId: defaultStore.id,
         userId: admin.id,
         action: ActivityAction.LOGIN,
         entity: 'auth',
@@ -150,6 +168,7 @@ async function main() {
         metadata: { note: 'seed initial login' },
       },
       {
+        storeId: defaultStore.id,
         userId: admin.id,
         action: ActivityAction.CREATE,
         entity: 'product',

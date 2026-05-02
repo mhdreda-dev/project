@@ -4,6 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { AlertTriangle } from 'lucide-react'
 import { getServerI18n } from '@/lib/i18n/server'
 
+export const dynamic = 'force-dynamic'
+
 export default async function LowStockPage() {
   const items = await stockService.getLowStock()
   const { t } = getServerI18n()

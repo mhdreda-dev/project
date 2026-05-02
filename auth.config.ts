@@ -14,6 +14,7 @@ export const authConfig = {
       if (user) {
         token.id = user.id
         token.role = (user as { role?: Role }).role
+        token.storeId = (user as { storeId?: string | null }).storeId ?? null
         token.email = user.email
         token.name = user.name
       }
@@ -23,6 +24,7 @@ export const authConfig = {
       if (token) {
         session.user.id = token.id as string
         session.user.role = token.role as Role
+        session.user.storeId = token.storeId as string | null
         session.user.email = token.email as string
         session.user.name = token.name as string
       }
