@@ -56,12 +56,8 @@ const nextConfig = {
       },
     ]
   },
-  async redirects() {
-    return [
-      // /benami → /benami/index.html (public/ doesn't auto-resolve trailing index)
-      { source: '/benami', destination: '/benami/index.html', permanent: false },
-    ]
-  },
+  // /benami is now the real storefront homepage — don't redirect it.
+  // Prototype remains accessible at /benami/index.html directly.
 }
 
 module.exports = nextConfig

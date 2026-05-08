@@ -40,74 +40,94 @@ export default async function StorefrontLayout({ children, params }: Props) {
 
   return (
     <div className="min-h-screen flex flex-col bg-stone-50 text-slate-900 antialiased selection:bg-slate-900 selection:text-white">
-      {/* Announcement bar */}
-      <div className="bg-slate-900 text-stone-100 text-[11px] sm:text-xs">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 h-9 flex items-center justify-center gap-2 sm:gap-3 text-center">
+      {/* Announcement bar — editorial mono ribbon */}
+      <div className="bg-[#0a0a0a] text-white/60 border-b border-white/5">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 h-9 flex items-center justify-center gap-3 sm:gap-5 text-center font-mono text-[10px] sm:text-[11px] tracking-[0.28em] uppercase">
           <span className="hidden sm:inline">⚡ Fast WhatsApp response</span>
-          <span className="hidden sm:inline text-stone-500">·</span>
+          <span className="hidden sm:inline text-white/25">·</span>
           <span>Live stock · Order in one message</span>
         </div>
       </div>
 
-      {/* Sticky scroll-aware header */}
+      {/* Sticky scroll-aware header — editorial dark glass */}
       <ScrollHeader>
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
-          <Link href={`/${store.slug}`} className="group flex items-center gap-2.5 min-w-0">
-            <StorefrontLogo
-              storeName={store.name}
-              src={logoUrl}
-              size="md"
-              priority
-              className="transition-transform duration-300 group-hover:scale-105"
-            />
-            <span className="text-base font-semibold tracking-tight text-slate-900 truncate">
-              {store.name}
-            </span>
-          </Link>
-
-          <nav className="hidden md:flex items-center gap-8" aria-label="Primary">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 h-[64px] sm:h-[72px] flex items-center justify-between gap-4 text-white">
+          {/* Left cluster: brand wordmark + center nav */}
+          <div className="flex items-center gap-8 lg:gap-12 min-w-0">
             <Link
               href={`/${store.slug}`}
-              className="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors relative group"
+              className="group flex items-center gap-2.5 sm:gap-3 min-w-0 shrink-0"
             >
-              Home
-              <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-slate-900 group-hover:w-full transition-all duration-300" />
+              <StorefrontLogo
+                storeName={store.name}
+                src={logoUrl}
+                size="sm"
+                priority
+                className="transition-transform duration-300 group-hover:scale-105"
+              />
+              <span className="font-serif text-[20px] sm:text-[24px] tracking-[-0.02em] leading-none text-white truncate">
+                {store.name}
+                <span className="text-amber-200/90">.</span>
+              </span>
             </Link>
-            <Link
-              href={`/${store.slug}/products`}
-              className="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors relative group"
-            >
-              Products
-              <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-slate-900 group-hover:w-full transition-all duration-300" />
-            </Link>
-          </nav>
 
+            <nav
+              className="hidden md:flex items-center gap-8 font-mono text-[11px] tracking-[0.22em] uppercase text-white/65"
+              aria-label="Primary"
+            >
+              <Link href={`/${store.slug}`} className="relative group hover:text-white transition-colors">
+                Home
+                <span
+                  aria-hidden="true"
+                  className="absolute -bottom-2 left-0 right-0 h-px bg-white origin-left scale-x-0 group-hover:scale-x-100 transition-transform duration-500"
+                />
+              </Link>
+              <Link
+                href={`/${store.slug}/products`}
+                className="relative group hover:text-white transition-colors"
+              >
+                Shop
+                <span
+                  aria-hidden="true"
+                  className="absolute -bottom-2 left-0 right-0 h-px bg-white origin-left scale-x-0 group-hover:scale-x-100 transition-transform duration-500"
+                />
+              </Link>
+            </nav>
+          </div>
+
+          {/* Right cluster: WhatsApp pill */}
           {whatsAppUrl ? (
             <a
               href={whatsAppUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 rounded-full bg-[#25D366] hover:bg-[#1ebe57] text-white px-3.5 sm:px-4 py-2 text-xs sm:text-sm font-semibold shadow-sm hover:shadow-lg hover:shadow-emerald-500/20 hover:-translate-y-0.5 transition-all shrink-0"
+              className="inline-flex items-center gap-2 rounded-full border border-white/15 hover:border-white/35 bg-white/[0.06] hover:bg-white/[0.14] backdrop-blur px-3.5 sm:px-4 py-2 sm:py-2.5 font-mono text-[10px] sm:text-[11px] tracking-[0.22em] uppercase text-white transition-all shrink-0"
             >
-              <WhatsAppIcon className="h-4 w-4" />
-              <span className="hidden sm:inline">Order on WhatsApp</span>
-              <span className="sm:hidden">Order</span>
+              <WhatsAppIcon className="h-4 w-4 text-[#25D366]" />
+              <span className="hidden sm:inline">Order</span>
             </a>
           ) : (
             <Link
               href={`/${store.slug}/products`}
-              className="text-sm font-semibold text-slate-900 hover:text-slate-700 shrink-0"
+              className="font-mono text-[11px] tracking-[0.22em] uppercase text-white/85 hover:text-white shrink-0"
             >
               Shop →
             </Link>
           )}
         </div>
 
-        {/* Mobile sub-nav */}
-        <div className="md:hidden border-t border-slate-200/60">
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 h-11 flex items-center gap-6" aria-label="Primary mobile">
-            <Link href={`/${store.slug}`} className="text-sm font-medium text-slate-600 hover:text-slate-900">Home</Link>
-            <Link href={`/${store.slug}/products`} className="text-sm font-medium text-slate-600 hover:text-slate-900">Products</Link>
+        {/* Mobile sub-nav — same editorial mono treatment */}
+        <div className="md:hidden border-t border-white/5">
+          <div
+            className="mx-auto max-w-7xl px-4 sm:px-6 h-10 flex items-center gap-6 font-mono text-[10px] tracking-[0.22em] uppercase text-white/65"
+            aria-label="Primary mobile"
+          >
+            <Link href={`/${store.slug}`} className="hover:text-white transition-colors">
+              Home
+            </Link>
+            <Link href={`/${store.slug}/products`} className="hover:text-white transition-colors">
+              Shop
+            </Link>
           </div>
         </div>
       </ScrollHeader>

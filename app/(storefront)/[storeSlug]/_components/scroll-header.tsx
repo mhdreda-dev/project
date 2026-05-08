@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { motion } from 'framer-motion'
 import { cn } from '@/lib/utils'
 
 type Props = {
@@ -9,8 +10,11 @@ type Props = {
 }
 
 /**
- * ScrollHeader — sticky header wrapper whose background opacity, blur, and
- * shadow react to vertical scroll. Uses requestAnimationFrame throttling.
+ * ScrollHeader — sticky editorial navbar.
+ *
+ * Always dark glass so the same bar reads consistently over both the
+ * cinematic dark hero and the light product / listing pages. Intensity
+ * (opacity, blur, shadow, edge line) ramps when the viewport scrolls.
  */
 export function ScrollHeader({ children, className }: Props) {
   const [scrolled, setScrolled] = useState(false)
@@ -32,16 +36,26 @@ export function ScrollHeader({ children, className }: Props) {
   }, [])
 
   return (
-    <header
+    <motion.header
       className={cn(
-        'sticky top-0 z-30 transition-all duration-300',
+        'sticky top-0 z-30 transition-[backdrop-filter,border-color] duration-300',
         scrolled
-          ? 'bg-stone-50/95 backdrop-blur-xl border-b border-slate-200/80 shadow-[0_1px_24px_-12px_rgb(15_23_42_/_0.15)]'
-          : 'bg-stone-50/60 backdrop-blur-md border-b border-slate-200/30',
+          ? 'backdrop-blur-xl border-b border-white/10'
+          : 'backdrop-blur-md border-b border-white/5',
         className,
       )}
+      initial={false}
+      animate={{
+        backgroundColor: scrolled
+          ? 'rgba(10, 10, 10, 0.85)'
+          : 'rgba(10, 10, 10, 0.45)',
+        boxShadow: scrolled
+          ? '0 1px 24px -12px rgba(0, 0, 0, 0.6)'
+          : '0 0px 0px 0px rgba(0, 0, 0, 0)',
+      }}
+      transition={{ duration: 0.3, ease: 'easeOut' }}
     >
       {children}
-    </header>
+    </motion.header>
   )
 }
