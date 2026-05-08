@@ -10,6 +10,7 @@ import { getStoreLogoUrl } from '@/lib/storefront/logos'
 import { ProductCard } from './_components/product-card'
 import { Reveal } from './_components/reveal'
 import { StorefrontLogo } from './_components/storefront-logo'
+import { VerticalImageStack } from '@/components/ui/vertical-image-stack'
 import {
   ArrowRightIcon,
   BoltIcon,
@@ -128,6 +129,88 @@ export default async function StorefrontHomePage({ params }: Props) {
 
         {/* Soft fade to next section */}
         <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-b from-transparent to-white pointer-events-none" />
+      </section>
+
+      {/* ── Cinematic showcase ──────────────────────────────────────────── */}
+      <section className="relative overflow-hidden bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-white py-20 sm:py-28 lg:py-36">
+        {/* Layered backdrop: gradient glows + dot grid mask */}
+        <div aria-hidden="true" className="absolute inset-0 -z-10 pointer-events-none">
+          <div className="absolute -top-32 left-1/2 -translate-x-1/2 h-[42rem] w-[42rem] rounded-full bg-amber-500/[0.08] blur-3xl" />
+          <div className="absolute bottom-0 -right-24 h-[32rem] w-[32rem] rounded-full bg-emerald-500/[0.07] blur-3xl" />
+          <div className="absolute top-1/2 -left-32 h-[28rem] w-[28rem] rounded-full bg-rose-500/[0.06] blur-3xl" />
+          <div
+            className="absolute inset-0 opacity-[0.08] [mask-image:radial-gradient(ellipse_at_center,black_30%,transparent_75%)]"
+            style={{
+              backgroundImage:
+                'radial-gradient(circle at 1px 1px, rgb(255 255 255 / 0.6) 1px, transparent 0)',
+              backgroundSize: '32px 32px',
+            }}
+          />
+        </div>
+
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          {/* Heading */}
+          <div className="text-center mb-14 sm:mb-20 max-w-2xl mx-auto">
+            <Reveal>
+              <p className="text-[11px] uppercase tracking-[0.3em] text-amber-200/70 font-semibold mb-5">
+                The collection
+              </p>
+            </Reveal>
+            <Reveal delay={120}>
+              <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight leading-[1.05] mb-5 text-white">
+                A cinematic{' '}
+                <span className="italic font-light text-amber-200/90">edit</span>
+              </h2>
+            </Reveal>
+            <Reveal delay={240}>
+              <p className="text-base sm:text-lg text-slate-300/80 leading-relaxed">
+                Hand-picked silhouettes, framed with intent. Swipe through the
+                lookbook — every piece is one tap away.
+              </p>
+            </Reveal>
+          </div>
+
+          {/* Glassmorphism container with the stack */}
+          <Reveal variant="scale" threshold={0.05}>
+            <div className="relative mx-auto max-w-md sm:max-w-lg lg:max-w-xl">
+              {/* Outer halo */}
+              <div
+                aria-hidden="true"
+                className="absolute -inset-6 sm:-inset-10 rounded-[40px] bg-gradient-to-br from-amber-500/10 via-transparent to-emerald-500/10 blur-2xl pointer-events-none"
+              />
+
+              <div className="relative overflow-hidden rounded-[32px] border border-white/10 bg-white/[0.03] backdrop-blur-xl p-5 sm:p-7 lg:p-9 shadow-2xl shadow-black/50">
+                {/* Inner sheen */}
+                <div
+                  aria-hidden="true"
+                  className="absolute inset-0 rounded-[32px] bg-gradient-to-br from-white/[0.06] via-transparent to-transparent pointer-events-none"
+                />
+                {/* Top edge highlight */}
+                <div
+                  aria-hidden="true"
+                  className="absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-white/30 to-transparent pointer-events-none"
+                />
+
+                <div className="relative">
+                  <VerticalImageStack />
+                </div>
+              </div>
+            </div>
+          </Reveal>
+
+          {/* Footnote CTA */}
+          <Reveal delay={120}>
+            <div className="text-center mt-14 sm:mt-20">
+              <Link
+                href={`/${store.slug}/products`}
+                className="group inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/[0.04] hover:bg-white/[0.08] hover:border-white/25 px-7 py-4 text-sm font-semibold text-white backdrop-blur-md transition-all"
+              >
+                Explore the full lookbook
+                <ArrowRightIcon className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
+              </Link>
+            </div>
+          </Reveal>
+        </div>
       </section>
 
       {/* ── Trust badges ─────────────────────────────────────────────────── */}
