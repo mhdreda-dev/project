@@ -10,6 +10,8 @@ const nextConfig = {
       // Vercel Blob public buckets — format: <storeId>.public.blob.vercel-storage.com
       { protocol: 'https', hostname: '*.public.blob.vercel-storage.com' },
       { protocol: 'https', hostname: '*.blob.vercel-storage.com' },
+      // Editorial hero imagery (curated, not user-uploaded)
+      { protocol: 'https', hostname: 'images.unsplash.com' },
     ],
   },
   async headers() {

@@ -8,7 +8,7 @@ import {
 import { buildStoreWhatsAppUrl } from '@/lib/storefront/whatsapp'
 import { getStoreLogoUrl } from '@/lib/storefront/logos'
 import { Reveal } from './_components/reveal'
-import { HeroSlider, type HeroSlide } from './_components/hero-slider'
+import { HeroSlider } from './_components/hero-slider'
 import { FeaturedProducts } from './_components/featured-products'
 import { LookbookSection } from './_components/lookbook-section'
 import {
@@ -25,55 +25,28 @@ type Props = {
   params: { storeSlug: string }
 }
 
-const formatPrice = (n: number) =>
-  n.toLocaleString('fr-MA', {
-    style: 'currency',
-    currency: 'MAD',
-    minimumFractionDigits: 0,
-  })
-
 export default async function StorefrontHomePage({ params }: Props) {
   const store = await getPublicStore(params.storeSlug)
   if (!store) notFound()
 
-  // Fetch enough products to power: hero (5), featured grid (8), lookbook (6).
-  const [{ products, total }, categories] = await Promise.all([
+  // Fetch enough products to power: featured grid (8) + lookbook (6).
+  // Hero is editorial and intentionally NOT driven by DB products.
+  const [{ products }, categories] = await Promise.all([
     getPublicProducts(store.id, { page: 1, limit: 12 }),
     getPublicCategories(store.id),
   ])
 
   const whatsAppUrl = buildStoreWhatsAppUrl(store)
-  // (logoUrl/StorefrontLogo are still rendered by the layout's header.)
-  // Reserved for future use; currently unused on this page.
+  // logoUrl/StorefrontLogo is rendered by the storefront layout's header.
   void getStoreLogoUrl
-
-  // Derived: hero slides from real products that have an image
-  const heroSlides: HeroSlide[] = products
-    .filter((p) => p.imageUrl)
-    .slice(0, 5)
-    .map((p) => ({
-      id: p.id,
-      href: `/${store.slug}/products/${p.id}`,
-      imageUrl: p.imageUrl as string,
-      name: p.name,
-      price: formatPrice(p.price),
-      brand: p.brand?.name ?? null,
-      category: p.category,
-    }))
 
   // Featured grid uses up to 8 of the latest products
   const featured = products.slice(0, 8)
 
   return (
     <div>
-      {/* ── Hero carousel (real products) ────────────────────────────────── */}
-      <HeroSlider
-        slides={heroSlides}
-        storeSlug={store.slug}
-        storeName={store.name}
-        total={total}
-        whatsAppUrl={whatsAppUrl}
-      />
+      {/* ── Editorial hero (curated visuals — NOT bound to DB products) ── */}
+      <HeroSlider storeSlug={store.slug} exploreAnchor="featured" />
 
       {/* ── Trust badges ─────────────────────────────────────────────────── */}
       <section className="border-y border-slate-200/80 bg-white">
@@ -102,8 +75,10 @@ export default async function StorefrontHomePage({ params }: Props) {
         </div>
       </section>
 
-      {/* ── Featured products ────────────────────────────────────────────── */}
-      <FeaturedProducts products={featured} storeSlug={store.slug} />
+      {/* ── Featured products (real DB products) ─────────────────────────── */}
+      <div id="featured" className="scroll-mt-20">
+        <FeaturedProducts products={featured} storeSlug={store.slug} />
+      </div>
 
       {/* ── Cinematic lookbook (real product imagery) ───────────────────── */}
       <LookbookSection products={products} storeSlug={store.slug} />
