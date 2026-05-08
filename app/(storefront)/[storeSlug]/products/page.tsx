@@ -6,6 +6,8 @@ import {
   getPublicCategories,
 } from '@/lib/storefront/storefront.service'
 import { ProductCard } from '../_components/product-card'
+import { Reveal } from '../_components/reveal'
+import { SearchIcon } from '../_components/icons'
 
 export const dynamic = 'force-dynamic'
 
@@ -33,16 +35,16 @@ export default async function ProductsCatalogPage({ params, searchParams }: Prop
   return (
     <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10 sm:py-14">
       {/* Page header */}
-      <div className="mb-8 sm:mb-10">
+      <div className="mb-10 sm:mb-12 motion-safe:animate-sf-fade-up">
         <nav className="flex items-center gap-2 text-xs text-slate-400 mb-4" aria-label="Breadcrumb">
-          <Link href={`/${store.slug}`} className="hover:text-slate-700 transition">{store.name}</Link>
+          <Link href={`/${store.slug}`} className="hover:text-slate-700 transition-colors">{store.name}</Link>
           <span>/</span>
           <span className="text-slate-700 font-medium">{category ?? 'Products'}</span>
         </nav>
-        <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-slate-900">
+        <h1 className="text-3xl sm:text-5xl font-bold tracking-tight text-slate-900">
           {category ?? 'All products'}
         </h1>
-        <p className="mt-2 text-sm text-slate-500">
+        <p className="mt-3 text-sm text-slate-500">
           {total === 0
             ? 'No products match your filters'
             : `${total} ${total === 1 ? 'product' : 'products'}${search ? ` matching "${search}"` : ''}`}
@@ -50,7 +52,7 @@ export default async function ProductsCatalogPage({ params, searchParams }: Prop
       </div>
 
       {/* Filter bar */}
-      <div className="mb-8 sm:mb-10 space-y-4">
+      <div className="mb-8 sm:mb-12 space-y-4 motion-safe:animate-sf-fade-up" style={{ animationDelay: '120ms' }}>
         <form method="GET" className="flex gap-2 sm:gap-3">
           <div className="relative flex-1">
             <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
@@ -59,13 +61,13 @@ export default async function ProductsCatalogPage({ params, searchParams }: Prop
               name="search"
               defaultValue={search ?? ''}
               placeholder="Search products…"
-              className="w-full rounded-full border border-slate-200 bg-white pl-11 pr-4 py-3 text-sm placeholder-slate-400 shadow-sm focus:outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900 transition"
+              className="w-full rounded-full border border-slate-200 bg-white pl-11 pr-4 py-3 text-sm placeholder-slate-400 shadow-sm focus:outline-none focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 transition"
             />
           </div>
           {category && <input type="hidden" name="category" value={category} />}
           <button
             type="submit"
-            className="rounded-full bg-slate-900 hover:bg-slate-800 text-white px-5 sm:px-6 py-3 text-sm font-semibold shadow-sm transition"
+            className="rounded-full bg-slate-900 hover:bg-slate-800 text-white px-5 sm:px-6 py-3 text-sm font-semibold shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all"
           >
             Search
           </button>
@@ -103,56 +105,64 @@ export default async function ProductsCatalogPage({ params, searchParams }: Prop
 
       {/* Grid */}
       {products.length === 0 ? (
-        <div className="rounded-3xl bg-white border border-dashed border-slate-200 px-6 py-20 text-center">
-          <div className="mx-auto h-12 w-12 rounded-full bg-stone-100 grid place-items-center mb-4">
-            <SearchIcon className="h-5 w-5 text-slate-400" />
+        <Reveal variant="scale">
+          <div className="rounded-3xl bg-white border border-dashed border-slate-200 px-6 py-20 text-center">
+            <div className="mx-auto h-12 w-12 rounded-full bg-stone-100 grid place-items-center mb-4">
+              <SearchIcon className="h-5 w-5 text-slate-400" />
+            </div>
+            <p className="text-base font-semibold text-slate-900 mb-1">No products found</p>
+            <p className="text-sm text-slate-500 mb-6">
+              {hasFilters
+                ? 'Try adjusting your filters or search terms.'
+                : 'Check back soon for new arrivals.'}
+            </p>
+            {hasFilters && (
+              <a
+                href={baseUrl}
+                className="inline-flex items-center rounded-full bg-slate-900 text-white px-5 py-2.5 text-sm font-semibold hover:bg-slate-800 hover:-translate-y-0.5 transition-all"
+              >
+                Clear filters
+              </a>
+            )}
           </div>
-          <p className="text-base font-semibold text-slate-900 mb-1">No products found</p>
-          <p className="text-sm text-slate-500 mb-6">
-            {hasFilters
-              ? 'Try adjusting your filters or search terms.'
-              : 'Check back soon for new arrivals.'}
-          </p>
-          {hasFilters && (
-            <a
-              href={baseUrl}
-              className="inline-flex items-center rounded-full bg-slate-900 text-white px-5 py-2.5 text-sm font-semibold hover:bg-slate-800 transition"
-            >
-              Clear filters
-            </a>
-          )}
-        </div>
+        </Reveal>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6 lg:gap-8">
-          {products.map((product) => (
-            <ProductCard
-              key={product.id}
-              product={product}
-              href={`/${store.slug}/products/${product.id}`}
-            />
+          {products.map((product, idx) => (
+            <Reveal key={product.id} delay={Math.min(idx * 40, 400)} variant="up">
+              <ProductCard
+                product={product}
+                href={`/${store.slug}/products/${product.id}`}
+              />
+            </Reveal>
           ))}
         </div>
       )}
 
       {/* Pagination */}
       {totalPages > 1 && (
-        <nav className="mt-12 sm:mt-14 flex justify-center items-center gap-2 flex-wrap" aria-label="Pagination">
-          {page > 1 && (
-            <PageLink baseUrl={baseUrl} page={page - 1} category={category} search={search}>
-              ← Previous
-            </PageLink>
-          )}
-          {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
-            <PageLink key={p} baseUrl={baseUrl} page={p} category={category} search={search} active={p === page}>
-              {p}
-            </PageLink>
-          ))}
-          {page < totalPages && (
-            <PageLink baseUrl={baseUrl} page={page + 1} category={category} search={search}>
-              Next →
-            </PageLink>
-          )}
-        </nav>
+        <Reveal>
+          <nav
+            className="mt-12 sm:mt-16 flex justify-center items-center gap-2 flex-wrap"
+            aria-label="Pagination"
+          >
+            {page > 1 && (
+              <PageLink baseUrl={baseUrl} page={page - 1} category={category} search={search}>
+                ← Previous
+              </PageLink>
+            )}
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+              <PageLink key={p} baseUrl={baseUrl} page={p} category={category} search={search} active={p === page}>
+                {p}
+              </PageLink>
+            ))}
+            {page < totalPages && (
+              <PageLink baseUrl={baseUrl} page={page + 1} category={category} search={search}>
+                Next →
+              </PageLink>
+            )}
+          </nav>
+        </Reveal>
       )}
     </div>
   )
@@ -166,10 +176,10 @@ function CategoryPill({
   return (
     <a
       href={href}
-      className={`inline-flex items-center rounded-full px-4 py-1.5 text-sm font-medium whitespace-nowrap shrink-0 shadow-sm transition ${
+      className={`inline-flex items-center rounded-full px-4 py-1.5 text-sm font-medium whitespace-nowrap shrink-0 shadow-sm transition-all ${
         active
-          ? 'bg-slate-900 text-white'
-          : 'bg-white border border-slate-200 text-slate-600 hover:border-slate-900 hover:text-slate-900'
+          ? 'bg-slate-900 text-white scale-105'
+          : 'bg-white border border-slate-200 text-slate-600 hover:border-slate-900 hover:text-slate-900 hover:-translate-y-0.5'
       }`}
     >
       {children}
@@ -195,21 +205,13 @@ function PageLink({
     <a
       href={`${baseUrl}?${qp.toString()}`}
       aria-current={active ? 'page' : undefined}
-      className={`min-w-[2.5rem] h-10 px-3 rounded-full inline-flex items-center justify-center text-sm font-semibold shadow-sm transition ${
+      className={`min-w-[2.5rem] h-10 px-3 rounded-full inline-flex items-center justify-center text-sm font-semibold shadow-sm transition-all ${
         active
-          ? 'bg-slate-900 text-white'
-          : 'bg-white border border-slate-200 text-slate-600 hover:border-slate-900 hover:text-slate-900'
+          ? 'bg-slate-900 text-white scale-105'
+          : 'bg-white border border-slate-200 text-slate-600 hover:border-slate-900 hover:text-slate-900 hover:-translate-y-0.5'
       }`}
     >
       {children}
     </a>
-  )
-}
-
-function SearchIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M11 19a8 8 0 100-16 8 8 0 000 16z" />
-    </svg>
   )
 }

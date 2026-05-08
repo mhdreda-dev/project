@@ -67,11 +67,51 @@ const config: Config = {
         shimmer: {
           '100%': { transform: 'translateX(100%)' },
         },
+        // Storefront animations (sf- prefix to avoid collision with admin UI)
+        'sf-fade-up': {
+          '0%': { opacity: '0', transform: 'translateY(24px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
+        'sf-fade-in': {
+          '0%': { opacity: '0' },
+          '100%': { opacity: '1' },
+        },
+        'sf-scale-in': {
+          '0%': { opacity: '0', transform: 'scale(0.92)' },
+          '100%': { opacity: '1', transform: 'scale(1)' },
+        },
+        'sf-bounce-in': {
+          '0%': { opacity: '0', transform: 'scale(0.5)' },
+          '60%': { opacity: '1', transform: 'scale(1.05)' },
+          '100%': { opacity: '1', transform: 'scale(1)' },
+        },
+        'sf-float': {
+          '0%, 100%': { transform: 'translateY(0px)' },
+          '50%': { transform: 'translateY(-8px)' },
+        },
+        'sf-orb': {
+          '0%, 100%': { transform: 'translate(0,0) scale(1)', opacity: '0.5' },
+          '50%': { transform: 'translate(30px,-20px) scale(1.08)', opacity: '0.7' },
+        },
+        'sf-glow-pulse': {
+          '0%, 100%': { opacity: '0.5' },
+          '50%': { opacity: '0.85' },
+        },
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
         shimmer: 'shimmer 1.4s infinite',
+        // Storefront
+        'sf-fade-up': 'sf-fade-up 0.7s ease-out both',
+        'sf-fade-in': 'sf-fade-in 0.6s ease-out both',
+        'sf-scale-in': 'sf-scale-in 0.5s ease-out both',
+        'sf-bounce-in': 'sf-bounce-in 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both',
+        'sf-float': 'sf-float 6s ease-in-out infinite',
+        'sf-float-slow': 'sf-float 10s ease-in-out infinite',
+        'sf-orb-1': 'sf-orb 14s ease-in-out infinite',
+        'sf-orb-2': 'sf-orb 18s ease-in-out infinite reverse',
+        'sf-glow-pulse': 'sf-glow-pulse 4s ease-in-out infinite',
       },
     },
   },

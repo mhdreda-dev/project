@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import Image from 'next/image'
+import { ImagePlaceholderIcon } from './icons'
 
 export type StorefrontProduct = {
   id: string
@@ -27,23 +28,27 @@ export function ProductCard({ product, href }: Props) {
   })
 
   return (
-    <Link href={href} className="group block">
-      <div className="relative aspect-square rounded-2xl overflow-hidden bg-stone-100 ring-1 ring-slate-200/60 group-hover:ring-slate-300 group-hover:shadow-lg transition-all duration-300">
+    <Link href={href} className="group block focus:outline-none">
+      <div className="relative aspect-square rounded-2xl overflow-hidden bg-stone-100 ring-1 ring-slate-200/60 group-hover:ring-slate-300 group-hover:shadow-xl group-hover:shadow-slate-900/10 group-hover:-translate-y-1 transition-all duration-500 ease-out will-change-transform group-focus-visible:ring-2 group-focus-visible:ring-slate-900">
         {product.imageUrl ? (
           <Image
             src={product.imageUrl}
             alt={product.name}
             fill
             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-            className="object-cover group-hover:scale-105 transition-transform duration-500"
+            className="object-cover transition-transform duration-700 ease-out group-hover:scale-110"
           />
         ) : (
           <div className="w-full h-full grid place-items-center">
-            <svg className="h-12 w-12 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-            </svg>
+            <ImagePlaceholderIcon className="h-12 w-12 text-slate-300" />
           </div>
         )}
+
+        {/* Subtle gradient wash on hover */}
+        <div
+          aria-hidden="true"
+          className="absolute inset-0 bg-gradient-to-t from-slate-900/30 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+        />
 
         {/* Sold-out overlay */}
         {!inStock && (
@@ -57,15 +62,15 @@ export function ProductCard({ product, href }: Props) {
         {/* Low-stock badge */}
         {isLowStock && (
           <div className="absolute top-3 left-3">
-            <span className="rounded-full bg-amber-500 text-white px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider shadow-sm">
+            <span className="rounded-full bg-amber-500 text-white px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider shadow-sm motion-safe:animate-sf-glow-pulse">
               Only {product.totalStock} left
             </span>
           </div>
         )}
 
-        {/* Hover CTA */}
+        {/* Hover CTA pill */}
         {inStock && (
-          <div className="hidden sm:block absolute inset-x-3 bottom-3 opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300">
+          <div className="hidden sm:block absolute inset-x-3 bottom-3 opacity-0 translate-y-3 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-500 ease-out">
             <div className="rounded-full bg-white/95 backdrop-blur shadow-lg px-4 py-2 text-center">
               <span className="text-xs font-semibold text-slate-900">View details →</span>
             </div>
