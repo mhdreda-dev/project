@@ -34,6 +34,30 @@ const nextConfig = {
           },
         ],
       },
+      // Static design prototype at /benami/* — CDN-loaded React/Babel/Tailwind.
+      // Matched after the global rule, so its CSP overrides for this path only.
+      {
+        source: '/benami/:path*',
+        headers: [
+          {
+            key: 'Content-Security-Policy',
+            value: [
+              "default-src 'self'",
+              "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://cdn.tailwindcss.com https://unpkg.com",
+              "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+              "img-src 'self' data: https:",
+              "font-src 'self' https://fonts.gstatic.com",
+              "connect-src 'self' https:",
+            ].join('; '),
+          },
+        ],
+      },
+    ]
+  },
+  async redirects() {
+    return [
+      // /benami → /benami/index.html (public/ doesn't auto-resolve trailing index)
+      { source: '/benami', destination: '/benami/index.html', permanent: false },
     ]
   },
 }

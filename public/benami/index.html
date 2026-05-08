@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>BENAMI — Premium Storefront</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Manrope:wght@200;300;400;500;600;700;800&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<style>
+  :root{
+    --ink:#f3efe7;
+    --ink-dim:rgba(243,239,231,0.62);
+    --ink-faint:rgba(243,239,231,0.36);
+    --bg:#0a0a0a;
+    --bg-2:#111110;
+    --line:rgba(243,239,231,0.10);
+    --accent:#d9c8a3; /* warm bone */
+    --accent-2:#c9794a; /* cinnamon */
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family:'Manrope',system-ui,sans-serif;-webkit-font-smoothing:antialiased;}
+  ::selection{background:var(--accent);color:#0a0a0a;}
+  .font-serif{font-family:'Instrument Serif',serif;font-weight:400;}
+  .font-mono{font-family:'JetBrains Mono',monospace;}
+  .grain{position:fixed;inset:0;pointer-events:none;z-index:1;mix-blend-mode:overlay;opacity:.4;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.06 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");}
+  .hairline{border-color:var(--line);}
+  .marquee-track{animation:marquee 38s linear infinite;}
+  @keyframes marquee{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+  .ken-burns{animation:ken 14s ease-in-out infinite alternate;}
+  @keyframes ken{0%{transform:scale(1.04) translate(-1%,-1%)}100%{transform:scale(1.12) translate(1%,1%)}}
+  .reveal-up{opacity:0;transform:translateY(20px);animation:revealUp .9s cubic-bezier(.2,.7,.2,1) forwards;}
+  @keyframes revealUp{to{opacity:1;transform:translateY(0)}}
+  .glow-soft{box-shadow:0 60px 200px -40px rgba(217,200,163,0.18), 0 0 120px -20px rgba(201,121,74,0.10) inset;}
+  .lift{transition:transform .6s cubic-bezier(.2,.7,.2,1), box-shadow .6s ease;}
+  .lift:hover{transform:translateY(-4px);}
+  .img-hover img{transition:transform 1.2s cubic-bezier(.2,.7,.2,1), filter .6s ease;}
+  .img-hover:hover img{transform:scale(1.04);filter:brightness(1.05);}
+  .scroll-indicator{animation:scrollPulse 2.4s ease-in-out infinite;}
+  @keyframes scrollPulse{0%,100%{transform:translateY(0);opacity:.5}50%{transform:translateY(8px);opacity:1}}
+  .glass{background:rgba(20,20,18,0.45);backdrop-filter:blur(18px) saturate(120%);-webkit-backdrop-filter:blur(18px) saturate(120%);border:1px solid rgba(243,239,231,0.10);}
+  .underline-grow{position:relative;}
+  .underline-grow::after{content:"";position:absolute;left:0;right:0;bottom:-4px;height:1px;background:currentColor;transform:scaleX(0);transform-origin:left;transition:transform .5s cubic-bezier(.2,.7,.2,1);}
+  .underline-grow:hover::after{transform:scaleX(1);}
+  .ambient-glow{position:absolute;border-radius:50%;filter:blur(80px);pointer-events:none;}
+  .text-balance{text-wrap:balance;}
+  .text-pretty{text-wrap:pretty;}
+</style>
+</head>
+<body class="bg-[#0a0a0a]">
+<div id="root"></div>
+<div class="grain"></div>
+<script type="text/babel" src="components.jsx"></script>
+<script type="text/babel" src="app.jsx"></script>
+</body>
+</html>
