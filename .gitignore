@@ -37,3 +37,5 @@ prisma/*.db-journal
 next-env.d.ts
 node_modules
 .env.local.save
+.env*.local
+.claude/
