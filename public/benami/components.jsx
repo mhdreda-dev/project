@@ -38,9 +38,9 @@ function Navbar() {
         <div className="flex items-center gap-12">
           <a href="#" className="font-serif text-[26px] tracking-[-0.02em] leading-none text-white">benami<span className="text-[var(--accent)]">.</span></a>
           <nav className="hidden md:flex items-center gap-8 font-mono text-[11px] tracking-[0.22em] uppercase text-white/70">
-            <a href="#shop" className="underline-grow hover:text-white">Shop</a>
+            <a href="/benami/products" className="underline-grow hover:text-white">Shop</a>
             <a href="#campaign" className="underline-grow hover:text-white">Campaign</a>
-            <a href="#categories" className="underline-grow hover:text-white">Universe</a>
+            <a href="/benami/products" className="underline-grow hover:text-white">Universe</a>
             <a href="#" className="underline-grow hover:text-white">Journal</a>
             <a href="#" className="underline-grow hover:text-white">Boutiques</a>
           </nav>
@@ -49,7 +49,7 @@ function Navbar() {
           <span className="hidden lg:inline">EN · USD</span>
           <a href="#" className="hover:text-white">Search</a>
           <a href="#" className="hover:text-white">Account</a>
-          <a href="#" className="relative hover:text-white">Bag <span className="ml-1 text-[var(--accent)]">(2)</span></a>
+          <a href="/benami/products" className="relative hover:text-white">Bag <span className="ml-1 text-[var(--accent)]">(2)</span></a>
         </div>
       </div>
     </header>
@@ -118,13 +118,13 @@ function Hero() {
               The {slide.src} edition assembles considered pieces for a quieter wardrobe — built in Italian mills, cut in our Lisbon atelier, finished by hand.
             </p>
             <div key={`cta-${i}`} className="reveal-up mt-12 flex items-center gap-6 flex-wrap" style={{animationDelay:'.4s'}}>
-              <a href="#shop" className="group inline-flex items-center gap-4 h-[56px] pl-7 pr-3 rounded-full bg-white text-black font-mono text-[11px] tracking-[0.28em] uppercase hover:bg-[var(--accent)] transition-colors">
+              <a href="/benami/products" className="group inline-flex items-center gap-4 h-[56px] pl-7 pr-3 rounded-full bg-white text-black font-mono text-[11px] tracking-[0.28em] uppercase hover:bg-[var(--accent)] transition-colors">
                 Shop now
                 <span className="w-[40px] h-[40px] rounded-full bg-black text-white grid place-items-center group-hover:translate-x-1 transition-transform">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/></svg>
                 </span>
               </a>
-              <a href="#campaign" className="font-mono text-[11px] tracking-[0.28em] uppercase text-white/80 underline-grow">Explore the collection</a>
+              <a href="/benami/products" className="font-mono text-[11px] tracking-[0.28em] uppercase text-white/80 underline-grow">Explore the collection</a>
             </div>
           </div>
 
@@ -228,7 +228,7 @@ function FeaturedGrid() {
             </h2>
           </div>
           <div className="col-span-12 lg:col-span-2 flex lg:justify-end items-end">
-            <a href="#" className="font-mono text-[11px] tracking-[0.28em] uppercase text-white/70 underline-grow">View all 124 →</a>
+            <a href="/benami/products" className="font-mono text-[11px] tracking-[0.28em] uppercase text-white/70 underline-grow">View all 124 →</a>
           </div>
         </div>
 
@@ -263,7 +263,7 @@ function FeaturedGrid() {
 
 function ProductCard({ p, className='', aspect='aspect-[4/5]', size='sm' }) {
   return (
-    <a href="#" className={`group relative block lift ${className}`}>
+    <a href="/benami/products" className={`group relative block lift ${className}`}>
       <div className={`relative overflow-hidden rounded-[6px] bg-[#141413] img-hover ${aspect}`}>
         <img src={p.img} alt={p.name} className="w-full h-full object-cover" loading="lazy" />
         <div className="absolute inset-0" style={{background:'linear-gradient(180deg, transparent 55%, rgba(0,0,0,0.45))'}}></div>
@@ -340,7 +340,7 @@ function CampaignSection() {
                 <div className="font-mono text-[10px] tracking-[0.28em] uppercase text-white/65 mb-2">Look 03 · Trench, wool crew</div>
                 <div className="font-serif text-[34px] md:text-[44px] leading-[1.05] tracking-[-0.02em] text-white max-w-[480px]">"The street still holds the rain."</div>
               </div>
-              <a href="#" className="hidden md:inline-flex font-mono text-[10px] tracking-[0.28em] uppercase text-white/85 underline-grow whitespace-nowrap">Shop the look</a>
+              <a href="/benami/products" className="hidden md:inline-flex font-mono text-[10px] tracking-[0.28em] uppercase text-white/85 underline-grow whitespace-nowrap">Shop the look</a>
             </div>
           </div>
 
@@ -359,7 +359,7 @@ function CampaignSection() {
                 <div className="font-serif text-[28px] leading-[1.05] tracking-[-0.015em] text-balance">14 pieces. <span className="italic text-[var(--accent)]">3 colorways.</span></div>
                 <div className="mt-3 text-white/55 text-[12px] leading-relaxed">Capsule drops in three deliveries through SS26.</div>
               </div>
-              <a href="#" className="font-mono text-[10px] tracking-[0.28em] uppercase text-white/85 underline-grow self-start">View capsule</a>
+              <a href="/benami/products" className="font-mono text-[10px] tracking-[0.28em] uppercase text-white/85 underline-grow self-start">View capsule</a>
             </div>
           </div>
 
@@ -413,12 +413,12 @@ function CategoryStrip() {
               The full <span className="italic text-[var(--accent)]">universe.</span>
             </h2>
           </div>
-          <a href="#" className="hidden md:inline-flex font-mono text-[11px] tracking-[0.28em] uppercase text-white/70 underline-grow">All categories →</a>
+          <a href="/benami/products" className="hidden md:inline-flex font-mono text-[11px] tracking-[0.28em] uppercase text-white/70 underline-grow">All categories →</a>
         </div>
 
         <div className="grid grid-cols-12 gap-4 lg:gap-6">
           {cats.map((c, idx) => (
-            <a key={c.name} href="#" className={`group relative overflow-hidden rounded-[6px] img-hover lift bg-[#141413] ${idx===0?'col-span-12 md:col-span-8 aspect-[16/10]':idx===1?'col-span-12 md:col-span-4 aspect-[4/5] md:aspect-auto':idx===2?'col-span-6 md:col-span-4 aspect-[5/4]':idx===3?'col-span-6 md:col-span-4 aspect-[5/4]':'col-span-12 md:col-span-4 aspect-[5/4]'}`}>
+            <a key={c.name} href={`/benami/products?category=${encodeURIComponent(c.name)}`} className={`group relative overflow-hidden rounded-[6px] img-hover lift bg-[#141413] ${idx===0?'col-span-12 md:col-span-8 aspect-[16/10]':idx===1?'col-span-12 md:col-span-4 aspect-[4/5] md:aspect-auto':idx===2?'col-span-6 md:col-span-4 aspect-[5/4]':idx===3?'col-span-6 md:col-span-4 aspect-[5/4]':'col-span-12 md:col-span-4 aspect-[5/4]'}`}>
               <img src={c.img} alt={c.name} className="absolute inset-0 w-full h-full object-cover" loading="lazy" />
               <div className="absolute inset-0" style={{background:'linear-gradient(180deg, rgba(0,0,0,0.15), rgba(0,0,0,0.55) 70%, rgba(0,0,0,0.85))'}}></div>
               <div className="relative h-full p-7 flex flex-col justify-between">
@@ -515,7 +515,7 @@ function PremiumFooterCTA() {
             124 pieces across four volumes. New deliveries every fortnight. Members of The Index see drops 48 hours early.
           </p>
           <div className="mt-14 flex items-center justify-center gap-6 flex-wrap">
-            <a href="#" className="group inline-flex items-center gap-4 h-[64px] pl-9 pr-4 rounded-full bg-white text-black font-mono text-[11px] tracking-[0.28em] uppercase hover:bg-[var(--accent)] transition-colors">
+            <a href="/benami/products" className="group inline-flex items-center gap-4 h-[64px] pl-9 pr-4 rounded-full bg-white text-black font-mono text-[11px] tracking-[0.28em] uppercase hover:bg-[var(--accent)] transition-colors">
               Enter the collection
               <span className="w-[44px] h-[44px] rounded-full bg-black text-white grid place-items-center group-hover:translate-x-1 transition-transform">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
@@ -546,10 +546,10 @@ function Footer() {
           <div className="col-span-6 lg:col-span-2">
             <div className="font-mono text-[10px] tracking-[0.32em] uppercase text-white/40 mb-5">Shop</div>
             <ul className="space-y-3 text-white/75 text-[13px]">
-              <li><a className="underline-grow" href="#">Sneakers</a></li>
-              <li><a className="underline-grow" href="#">Streetwear</a></li>
-              <li><a className="underline-grow" href="#">Outerwear</a></li>
-              <li><a className="underline-grow" href="#">Accessories</a></li>
+              <li><a className="underline-grow" href="/benami/products?category=Sneakers">Sneakers</a></li>
+              <li><a className="underline-grow" href="/benami/products?category=Streetwear">Streetwear</a></li>
+              <li><a className="underline-grow" href="/benami/products?category=Outerwear">Outerwear</a></li>
+              <li><a className="underline-grow" href="/benami/products?category=Accessories">Accessories</a></li>
               <li><a className="underline-grow" href="#">Volume 04</a></li>
             </ul>
           </div>
