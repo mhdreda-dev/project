@@ -19,63 +19,80 @@ type Props = {
 
 export function ProductCard({ product, href }: Props) {
   const inStock = product.totalStock > 0
+  const isLowStock = inStock && product.totalStock <= 5
+  const formattedPrice = product.price.toLocaleString('fr-MA', {
+    style: 'currency',
+    currency: 'MAD',
+    minimumFractionDigits: 0,
+  })
 
   return (
     <Link href={href} className="group block">
-      <div className="relative aspect-square rounded-xl overflow-hidden bg-slate-100 mb-3">
+      <div className="relative aspect-square rounded-2xl overflow-hidden bg-stone-100 ring-1 ring-slate-200/60 group-hover:ring-slate-300 group-hover:shadow-lg transition-all duration-300">
         {product.imageUrl ? (
           <Image
             src={product.imageUrl}
             alt={product.name}
             fill
             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-            className="object-cover group-hover:scale-105 transition-transform duration-300"
+            className="object-cover group-hover:scale-105 transition-transform duration-500"
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center">
-            <svg className="h-12 w-12 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="w-full h-full grid place-items-center">
+            <svg className="h-12 w-12 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
             </svg>
           </div>
         )}
-        <div className={`absolute top-2 right-2 px-2 py-0.5 rounded-full text-xs font-medium ${
-          inStock ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'
-        }`}>
-          {inStock ? 'In stock' : 'Out of stock'}
-        </div>
+
+        {/* Sold-out overlay */}
+        {!inStock && (
+          <div className="absolute inset-0 bg-white/60 backdrop-blur-[2px] grid place-items-center">
+            <span className="rounded-full bg-slate-900 text-white px-3 py-1 text-[10px] font-semibold uppercase tracking-widest">
+              Sold out
+            </span>
+          </div>
+        )}
+
+        {/* Low-stock badge */}
+        {isLowStock && (
+          <div className="absolute top-3 left-3">
+            <span className="rounded-full bg-amber-500 text-white px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider shadow-sm">
+              Only {product.totalStock} left
+            </span>
+          </div>
+        )}
+
+        {/* Hover CTA */}
+        {inStock && (
+          <div className="hidden sm:block absolute inset-x-3 bottom-3 opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300">
+            <div className="rounded-full bg-white/95 backdrop-blur shadow-lg px-4 py-2 text-center">
+              <span className="text-xs font-semibold text-slate-900">View details →</span>
+            </div>
+          </div>
+        )}
       </div>
 
-      <div className="space-y-1">
+      {/* Info */}
+      <div className="mt-4 space-y-1.5">
         {(product.brand || product.category) && (
-          <p className="text-xs text-slate-400 uppercase tracking-wide">
+          <p className="text-[10px] uppercase tracking-widest text-slate-400 font-semibold">
             {product.brand?.name ?? product.category}
           </p>
         )}
-        <p className="text-sm font-medium text-slate-900 line-clamp-2 group-hover:text-slate-600 transition-colors">
+        <h3 className="text-sm font-medium text-slate-900 line-clamp-2 leading-snug group-hover:text-slate-600 transition-colors">
           {product.name}
-        </p>
-        <p className="text-sm font-semibold text-slate-900">
-          {product.price.toLocaleString('fr-MA', { style: 'currency', currency: 'MAD', minimumFractionDigits: 0 })}
-        </p>
-        {product.sizes.length > 0 && (
-          <div className="flex flex-wrap gap-1 pt-1">
-            {product.sizes.slice(0, 5).map((s) => (
-              <span
-                key={s.size}
-                className={`px-1.5 py-0.5 text-xs rounded border ${
-                  s.quantity > 0
-                    ? 'border-slate-300 text-slate-600'
-                    : 'border-slate-200 text-slate-300 line-through'
-                }`}
-              >
-                {s.size}
-              </span>
-            ))}
-            {product.sizes.length > 5 && (
-              <span className="px-1.5 py-0.5 text-xs text-slate-400">+{product.sizes.length - 5}</span>
-            )}
-          </div>
-        )}
+        </h3>
+        <div className="flex items-baseline justify-between pt-1 gap-2">
+          <p className="text-base font-bold text-slate-900 tracking-tight">
+            {formattedPrice}
+          </p>
+          {product.sizes.length > 0 && (
+            <p className="text-[11px] text-slate-400 shrink-0">
+              {product.sizes.length} size{product.sizes.length !== 1 ? 's' : ''}
+            </p>
+          )}
+        </div>
       </div>
     </Link>
   )

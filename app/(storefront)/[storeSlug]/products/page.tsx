@@ -1,4 +1,5 @@
 import { notFound } from 'next/navigation'
+import Link from 'next/link'
 import {
   getPublicStore,
   getPublicProducts,
@@ -27,31 +28,51 @@ export default async function ProductsCatalogPage({ params, searchParams }: Prop
   ])
 
   const baseUrl = `/${store.slug}/products`
+  const hasFilters = !!(category || search)
 
   return (
-    <div>
-      <h1 className="text-2xl font-bold text-slate-900 mb-6">All products</h1>
+    <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10 sm:py-14">
+      {/* Page header */}
+      <div className="mb-8 sm:mb-10">
+        <nav className="flex items-center gap-2 text-xs text-slate-400 mb-4" aria-label="Breadcrumb">
+          <Link href={`/${store.slug}`} className="hover:text-slate-700 transition">{store.name}</Link>
+          <span>/</span>
+          <span className="text-slate-700 font-medium">{category ?? 'Products'}</span>
+        </nav>
+        <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-slate-900">
+          {category ?? 'All products'}
+        </h1>
+        <p className="mt-2 text-sm text-slate-500">
+          {total === 0
+            ? 'No products match your filters'
+            : `${total} ${total === 1 ? 'product' : 'products'}${search ? ` matching "${search}"` : ''}`}
+        </p>
+      </div>
 
-      <div className="mb-8 space-y-4">
-        <form method="GET" className="flex gap-3">
-          <input
-            type="text"
-            name="search"
-            defaultValue={search ?? ''}
-            placeholder="Search products…"
-            className="flex-1 rounded-lg border border-slate-300 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent"
-          />
+      {/* Filter bar */}
+      <div className="mb-8 sm:mb-10 space-y-4">
+        <form method="GET" className="flex gap-2 sm:gap-3">
+          <div className="relative flex-1">
+            <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
+            <input
+              type="text"
+              name="search"
+              defaultValue={search ?? ''}
+              placeholder="Search products…"
+              className="w-full rounded-full border border-slate-200 bg-white pl-11 pr-4 py-3 text-sm placeholder-slate-400 shadow-sm focus:outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900 transition"
+            />
+          </div>
           {category && <input type="hidden" name="category" value={category} />}
           <button
             type="submit"
-            className="px-4 py-2 rounded-lg bg-slate-900 text-white text-sm font-medium hover:bg-slate-700 transition-colors"
+            className="rounded-full bg-slate-900 hover:bg-slate-800 text-white px-5 sm:px-6 py-3 text-sm font-semibold shadow-sm transition"
           >
             Search
           </button>
-          {(search || category) && (
+          {hasFilters && (
             <a
               href={baseUrl}
-              className="px-4 py-2 rounded-lg border border-slate-300 text-slate-600 text-sm font-medium hover:bg-slate-50 transition-colors"
+              className="hidden sm:inline-flex items-center rounded-full border border-slate-200 hover:border-slate-300 bg-white text-slate-600 px-5 py-3 text-sm font-medium shadow-sm transition"
             >
               Clear
             </a>
@@ -59,61 +80,50 @@ export default async function ProductsCatalogPage({ params, searchParams }: Prop
         </form>
 
         {categories.length > 0 && (
-          <div className="flex flex-wrap gap-2">
-            <a
+          <div className="flex gap-2 overflow-x-auto -mx-4 px-4 sm:-mx-0 sm:px-0 sm:flex-wrap pb-1 scrollbar-hide">
+            <CategoryPill
               href={search ? `${baseUrl}?search=${encodeURIComponent(search)}` : baseUrl}
-              className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
-                !category
-                  ? 'bg-slate-900 text-white'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-              }`}
+              active={!category}
             >
-              All
-            </a>
+              All products
+            </CategoryPill>
             {categories.map((cat) => {
               const qp = new URLSearchParams()
               qp.set('category', cat)
               if (search) qp.set('search', search)
               return (
-                <a
-                  key={cat}
-                  href={`${baseUrl}?${qp.toString()}`}
-                  className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
-                    category === cat
-                      ? 'bg-slate-900 text-white'
-                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                  }`}
-                >
+                <CategoryPill key={cat} href={`${baseUrl}?${qp.toString()}`} active={category === cat}>
                   {cat}
-                </a>
+                </CategoryPill>
               )
             })}
           </div>
         )}
       </div>
 
-      <div className="flex items-center justify-between mb-6">
-        <p className="text-sm text-slate-500">
-          {total === 0
-            ? 'No products found'
-            : `${total} product${total !== 1 ? 's' : ''}${category ? ` in "${category}"` : ''}${search ? ` for "${search}"` : ''}`}
-        </p>
-      </div>
-
+      {/* Grid */}
       {products.length === 0 ? (
-        <div className="text-center py-24 text-slate-400">
-          <svg className="mx-auto mb-4 h-12 w-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
-          </svg>
-          <p className="text-lg font-medium">No products available</p>
-          {(search || category) && (
-            <a href={baseUrl} className="mt-3 inline-block text-sm text-slate-600 underline">
+        <div className="rounded-3xl bg-white border border-dashed border-slate-200 px-6 py-20 text-center">
+          <div className="mx-auto h-12 w-12 rounded-full bg-stone-100 grid place-items-center mb-4">
+            <SearchIcon className="h-5 w-5 text-slate-400" />
+          </div>
+          <p className="text-base font-semibold text-slate-900 mb-1">No products found</p>
+          <p className="text-sm text-slate-500 mb-6">
+            {hasFilters
+              ? 'Try adjusting your filters or search terms.'
+              : 'Check back soon for new arrivals.'}
+          </p>
+          {hasFilters && (
+            <a
+              href={baseUrl}
+              className="inline-flex items-center rounded-full bg-slate-900 text-white px-5 py-2.5 text-sm font-semibold hover:bg-slate-800 transition"
+            >
               Clear filters
             </a>
           )}
         </div>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 lg:gap-6">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6 lg:gap-8">
           {products.map((product) => (
             <ProductCard
               key={product.id}
@@ -124,29 +134,82 @@ export default async function ProductsCatalogPage({ params, searchParams }: Prop
         </div>
       )}
 
+      {/* Pagination */}
       {totalPages > 1 && (
-        <div className="mt-10 flex justify-center gap-2">
-          {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => {
-            const qp = new URLSearchParams()
-            qp.set('page', String(p))
-            if (category) qp.set('category', category)
-            if (search) qp.set('search', search)
-            return (
-              <a
-                key={p}
-                href={`${baseUrl}?${qp.toString()}`}
-                className={`w-9 h-9 rounded-lg flex items-center justify-center text-sm font-medium transition-colors ${
-                  p === page
-                    ? 'bg-slate-900 text-white'
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                }`}
-              >
-                {p}
-              </a>
-            )
-          })}
-        </div>
+        <nav className="mt-12 sm:mt-14 flex justify-center items-center gap-2 flex-wrap" aria-label="Pagination">
+          {page > 1 && (
+            <PageLink baseUrl={baseUrl} page={page - 1} category={category} search={search}>
+              ← Previous
+            </PageLink>
+          )}
+          {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+            <PageLink key={p} baseUrl={baseUrl} page={p} category={category} search={search} active={p === page}>
+              {p}
+            </PageLink>
+          ))}
+          {page < totalPages && (
+            <PageLink baseUrl={baseUrl} page={page + 1} category={category} search={search}>
+              Next →
+            </PageLink>
+          )}
+        </nav>
       )}
     </div>
+  )
+}
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+function CategoryPill({
+  href, active, children,
+}: { href: string; active: boolean; children: React.ReactNode }) {
+  return (
+    <a
+      href={href}
+      className={`inline-flex items-center rounded-full px-4 py-1.5 text-sm font-medium whitespace-nowrap shrink-0 shadow-sm transition ${
+        active
+          ? 'bg-slate-900 text-white'
+          : 'bg-white border border-slate-200 text-slate-600 hover:border-slate-900 hover:text-slate-900'
+      }`}
+    >
+      {children}
+    </a>
+  )
+}
+
+function PageLink({
+  baseUrl, page, category, search, active = false, children,
+}: {
+  baseUrl: string
+  page: number
+  category?: string
+  search?: string
+  active?: boolean
+  children: React.ReactNode
+}) {
+  const qp = new URLSearchParams()
+  qp.set('page', String(page))
+  if (category) qp.set('category', category)
+  if (search) qp.set('search', search)
+  return (
+    <a
+      href={`${baseUrl}?${qp.toString()}`}
+      aria-current={active ? 'page' : undefined}
+      className={`min-w-[2.5rem] h-10 px-3 rounded-full inline-flex items-center justify-center text-sm font-semibold shadow-sm transition ${
+        active
+          ? 'bg-slate-900 text-white'
+          : 'bg-white border border-slate-200 text-slate-600 hover:border-slate-900 hover:text-slate-900'
+      }`}
+    >
+      {children}
+    </a>
+  )
+}
+
+function SearchIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M11 19a8 8 0 100-16 8 8 0 000 16z" />
+    </svg>
   )
 }
