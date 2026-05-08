@@ -1,5 +1,12 @@
 import { z } from 'zod'
 
+// Slugs that would collide with system routes — blocked at creation time.
+const RESERVED_SLUGS = new Set([
+  'api', 'dashboard', 'login', 'register', 'admin',
+  'brands', 'products', 'stock', 'users', 'reports',
+  'logs', 'stores', 'ai-requests', '_next',
+])
+
 export const createStoreSchema = z.object({
   name: z.string().min(2, 'Store name is required').max(255).trim(),
   slug: z
@@ -7,7 +14,8 @@ export const createStoreSchema = z.object({
     .min(2, 'Slug is required')
     .max(100)
     .regex(/^[a-z0-9-]+$/, 'Slug can only contain lowercase letters, numbers, and dashes')
-    .trim(),
+    .trim()
+    .refine((s) => !RESERVED_SLUGS.has(s), { message: 'This slug is reserved and cannot be used' }),
   phone: z.string().max(50).optional().nullable(),
   address: z.string().max(500).optional().nullable(),
   isActive: z.boolean().optional().default(true),

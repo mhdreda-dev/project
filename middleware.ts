@@ -6,7 +6,24 @@ import { NextResponse } from 'next/server'
 // Prisma + bcrypt which are Node.js-only and crash the Edge Runtime).
 const { auth } = NextAuth(authConfig)
 
-const PUBLIC_PATHS = ['/login', '/api/auth', '/api/tenant/resolve', '/api/ai/sales-agent', '/api/whatsapp/webhook']
+const PUBLIC_PATHS = ['/login', '/api/auth', '/api/tenant/resolve', '/api/ai/sales-agent', '/api/whatsapp/webhook', '/api/storefront']
+
+// Segments that belong to the admin/auth system — never treated as store slugs.
+const RESERVED_SEGMENTS = new Set([
+  'api', 'dashboard', 'login', 'register', 'admin',
+  'brands', 'products', 'stock', 'users', 'reports',
+  'logs', 'stores', 'ai-requests', '_next',
+])
+
+function isStorefrontPath(pathname: string): boolean {
+  const seg = pathname.split('/')[1]
+  if (!seg || RESERVED_SEGMENTS.has(seg)) return false
+  if (!/^[a-z0-9-]+$/.test(seg)) return false
+  // /[slug]/login is tenant auth — already handled by isTenantLoginPath; exclude here
+  if (/^\/[a-z0-9-]+\/login$/.test(pathname)) return false
+  return true
+}
+
 const ADMIN_ONLY_PATHS = [
   '/admin',
   '/reports',
@@ -68,6 +85,15 @@ export default auth(function middleware(req) {
   const hostname = getHostname(req)
   const isPreview = isPreviewHostname(hostname)
   const tenantSlug = isPreview ? null : getTenantSlugFromHost(hostname)
+
+  // Public storefront pages — pass through unconditionally (no auth required,
+  // no redirect even if the user is authenticated).
+  if (isStorefrontPath(nextUrl.pathname)) {
+    const response = NextResponse.next()
+    response.headers.set('X-Frame-Options', 'DENY')
+    response.headers.set('X-Content-Type-Options', 'nosniff')
+    return response
+  }
 
   const isPublic = PUBLIC_PATHS.some((p) => nextUrl.pathname.startsWith(p)) || isTenantLoginPath(nextUrl.pathname)
 
