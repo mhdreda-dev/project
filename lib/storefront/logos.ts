@@ -5,7 +5,7 @@
 // rendered from the store name. No DB / schema changes required.
 
 const LOGO_REGISTRY: Record<string, string> = {
-  // 'benami': '/logos/benami.png',
+  benami: '/logos/benami.jpeg',
 }
 
 export function getStoreLogoUrl(storeSlug: string): string | null {
