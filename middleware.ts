@@ -54,10 +54,12 @@ function getTenantSlugFromHost(hostname: string) {
   return slug && /^[a-z0-9-]+$/.test(slug) ? slug : null
 }
 
+function isTenantLoginPath(pathname: string) {
+  return /^\/[a-z0-9-]+\/login$/.test(pathname)
+}
+
 function loginUrl(reqUrl: string, tenantSlug: string | null) {
-  const url = new URL('/login', reqUrl)
-  if (tenantSlug) url.searchParams.set('store', tenantSlug)
-  return url
+  return new URL(tenantSlug ? `/${tenantSlug}/login` : '/login', reqUrl)
 }
 
 export default auth(function middleware(req) {
@@ -67,7 +69,14 @@ export default auth(function middleware(req) {
   const isPreview = isPreviewHostname(hostname)
   const tenantSlug = isPreview ? null : getTenantSlugFromHost(hostname)
 
-  const isPublic = PUBLIC_PATHS.some((p) => nextUrl.pathname.startsWith(p))
+  const isPublic = PUBLIC_PATHS.some((p) => nextUrl.pathname.startsWith(p)) || isTenantLoginPath(nextUrl.pathname)
+
+  const legacyStoreSlug = nextUrl.pathname === '/login'
+    ? nextUrl.searchParams.get('store')?.trim().toLowerCase()
+    : null
+  if (legacyStoreSlug && /^[a-z0-9-]+$/.test(legacyStoreSlug)) {
+    return NextResponse.redirect(loginUrl(req.url, legacyStoreSlug))
+  }
 
   if (!isPreview && tenantSlug && nextUrl.pathname === '/login' && !nextUrl.searchParams.get('store')) {
     return NextResponse.redirect(loginUrl(req.url, tenantSlug))
