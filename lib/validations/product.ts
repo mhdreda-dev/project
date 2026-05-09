@@ -5,6 +5,23 @@ export const productSizeSchema = z.object({
   quantity: z.number().int().min(0).default(0),
 })
 
+const productVariantImageSchema = z.object({
+  url: z.string().url('Invalid image URL'),
+})
+
+export const productVariantSchema = z.object({
+  id: z.string().optional(),
+  colorName: z.string().min(1, 'Color name is required').max(80).trim(),
+  colorHex: z
+    .string()
+    .regex(/^#[0-9A-Fa-f]{6}$/, 'Invalid color hex')
+    .optional()
+    .nullable(),
+  imageUrl: z.string().url('Invalid image URL').optional().nullable(),
+  images: z.array(productVariantImageSchema).default([]),
+  sizes: z.array(productSizeSchema).default([]),
+})
+
 export const createProductSchema = z.object({
   name: z.string().min(1, 'Product name is required').max(255).trim(),
   description: z.string().max(2000).optional().nullable(),
@@ -17,6 +34,7 @@ export const createProductSchema = z.object({
   lowStockThreshold: z.number().int().nonnegative().default(5),
   isActive: z.boolean().optional(),
   sizes: z.array(productSizeSchema).default([]),
+  variants: z.array(productVariantSchema).default([]),
 })
 
 export const updateProductSchema = z.object({
@@ -31,6 +49,7 @@ export const updateProductSchema = z.object({
   lowStockThreshold: z.number().int().nonnegative().optional(),
   isActive: z.boolean().optional(),
   sizes: z.array(productSizeSchema).optional(),
+  variants: z.array(productVariantSchema).optional(),
 })
 
 export const productQuerySchema = z.object({

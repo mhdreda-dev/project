@@ -89,7 +89,7 @@ export function ChatPanel({ open, onClose }: { open: boolean; onClose: () => voi
     <section
       aria-label="AI sales assistant"
       className={cn(
-        'fixed bottom-24 right-4 z-50 flex h-[min(680px,calc(100vh-7rem))] w-[calc(100vw-2rem)] max-w-[420px] flex-col overflow-hidden rounded-lg border border-slate-200 bg-white shadow-2xl shadow-slate-900/20 transition-all duration-200 sm:right-6',
+        'fixed bottom-[calc(env(safe-area-inset-bottom)+9.5rem)] right-4 z-40 flex h-[min(680px,calc(100vh-12rem))] w-[calc(100vw-2rem)] max-w-[420px] flex-col overflow-hidden rounded-lg border border-slate-200 bg-white shadow-2xl shadow-slate-900/20 transition-all duration-200 sm:bottom-44 sm:right-6',
         open ? 'translate-y-0 opacity-100' : 'pointer-events-none translate-y-3 opacity-0',
       )}
     >

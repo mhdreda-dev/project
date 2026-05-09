@@ -16,6 +16,7 @@ type Props = {
     id: string
     name: string
     imageUrl: string | null
+    colorName?: string | null
     price: number
     totalStock: number
     sizes: SizeOption[]
@@ -90,6 +91,7 @@ export function CodOrderPanel({ product, storeSlug, whatsAppUrl }: Props) {
       '',
       `Produit: ${product.name}`,
       `Lien produit: ${productUrl}`,
+      ...(product.colorName ? [`Couleur: ${product.colorName}`] : []),
       `Taille: ${selectedSize || 'Standard'}`,
       `Quantité: ${quantity}`,
       `Prix unitaire: ${formatMad(product.price)}`,
@@ -257,6 +259,7 @@ export function CodOrderPanel({ product, storeSlug, whatsAppUrl }: Props) {
                     {product.name}
                   </p>
                   <div className="mt-3 grid gap-1 text-sm text-white/55">
+                    {product.colorName && <p>Couleur: <span className="text-white">{product.colorName}</span></p>}
                     <p>Taille: <span className="text-white">{selectedSize || 'Standard'}</span></p>
                     <p>Quantité: <span className="text-white">{quantity}</span></p>
                     <p>Prix: <span className="text-white">{formatMad(product.price)}</span></p>

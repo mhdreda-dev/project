@@ -23,7 +23,13 @@ import { useI18n } from '@/components/i18n-provider'
 
 type MovementType = 'IN' | 'OUT' | 'ADJUSTMENT'
 
-type ProductSize = { id: string; size: string; quantity: number }
+type ProductSize = { id: string; size: string; quantity: number; variant?: { colorName: string; colorHex: string | null } | null }
+type ProductVariant = {
+  id: string
+  colorName: string
+  colorHex: string | null
+  sizes: ProductSize[]
+}
 type Movement = {
   id: string
   type: MovementType
@@ -48,6 +54,7 @@ type Product = {
   isActive: boolean
   brand: { id: string; name: string } | null
   sizes: ProductSize[]
+  variants?: ProductVariant[]
   movements: Movement[]
 }
 
@@ -74,7 +81,15 @@ export function ProductDetailClient({ product: initial, isAdmin }: Props) {
   const [adjustRef, setAdjustRef] = useState('')
   const [saving, setSaving] = useState(false)
 
-  const totalStock = product.sizes.reduce((s, sz) => s + sz.quantity, 0)
+  const displaySizes = product.variants?.length
+    ? product.variants.flatMap((variant) =>
+        variant.sizes.map((size) => ({
+          ...size,
+          variant: { colorName: variant.colorName, colorHex: variant.colorHex },
+        })),
+      )
+    : product.sizes
+  const totalStock = displaySizes.reduce((s, sz) => s + sz.quantity, 0)
   const isLow = totalStock <= product.lowStockThreshold
   const margin = isAdmin && product.costPrice != null
     ? Number(product.price) - Number(product.costPrice)
@@ -260,9 +275,9 @@ export function ProductDetailClient({ product: initial, isAdmin }: Props) {
               <Button asChild variant="outline" className="rounded-xl gap-2">
                 <Link href={`/products?edit=${product.id}`}>{t('common.actions.editProduct')}</Link>
               </Button>
-              {product.sizes[0] && (
+              {displaySizes[0] && (
                 <Button
-                  onClick={() => openAdjust(product.sizes[0], 'IN')}
+                  onClick={() => openAdjust(displaySizes[0], 'IN')}
                   className="rounded-xl gap-2"
                 >
                   <ArrowUpCircle className="h-4 w-4" />
@@ -283,17 +298,17 @@ export function ProductDetailClient({ product: initial, isAdmin }: Props) {
               {t('productDetail.stockBySize')}
             </CardTitle>
             <CardDescription>
-              {t('common.misc.variantCount', { count: product.sizes.length })} · {t('common.misc.totalUnitCount', { count: totalStock })} ·
+              {t('common.misc.variantCount', { count: displaySizes.length })} · {t('common.misc.totalUnitCount', { count: totalStock })} ·
               {t('common.labels.threshold')} {product.lowStockThreshold}
             </CardDescription>
           </div>
         </CardHeader>
         <CardContent>
-          {product.sizes.length === 0 ? (
+          {displaySizes.length === 0 ? (
             <p className="text-sm text-slate-400 italic py-4">{t('productDetail.noSizeVariants')}</p>
           ) : (
             <div className="divide-y divide-slate-50">
-              {product.sizes.map((s) => {
+              {displaySizes.map((s) => {
                 const sizeLow = s.quantity <= product.lowStockThreshold
                 return (
                   <div key={s.id} className="py-3 flex items-center gap-4">
@@ -301,6 +316,15 @@ export function ProductDetailClient({ product: initial, isAdmin }: Props) {
                       {s.size}
                     </div>
                     <div className="flex-1 min-w-0">
+                      {s.variant && (
+                        <p className="mb-0.5 flex items-center gap-1.5 text-xs text-slate-500">
+                          <span
+                            className="h-2.5 w-2.5 rounded-full border border-slate-200"
+                            style={{ backgroundColor: s.variant.colorHex ?? '#111827' }}
+                          />
+                          {s.variant.colorName}
+                        </p>
+                      )}
                       <p className={`text-sm font-medium ${sizeLow ? 'text-amber-700' : 'text-slate-800'}`}>
                         {t('common.misc.unitCount', { count: s.quantity })}
                       </p>

@@ -36,10 +36,10 @@ const nextConfig = {
           },
         ],
       },
-      // Static design prototype at /benami/* — CDN-loaded React/Babel/Tailwind.
+      // Static design prototype at /benami-prototype/* — CDN-loaded React/Babel/Tailwind.
       // Matched after the global rule, so its CSP overrides for this path only.
       {
-        source: '/benami/:path*',
+        source: '/benami-prototype/:path*',
         headers: [
           {
             key: 'Content-Security-Policy',
@@ -56,8 +56,7 @@ const nextConfig = {
       },
     ]
   },
-  // /benami is now the real storefront homepage — don't redirect it.
-  // Prototype remains accessible at /benami/index.html directly.
+  // /benami is the real storefront homepage. Keep any prototype assets off that path.
 }
 
 module.exports = nextConfig

@@ -18,6 +18,19 @@ function serializeProduct<T extends Record<string, any> | null | undefined>(p: T
       ...(s.costPrice != null ? { costPrice: Number(s.costPrice) } : {}),
     }))
   }
+  if (Array.isArray(out.variants)) {
+    out.variants = out.variants.map((v: any) => ({
+      ...v,
+      sizes: Array.isArray(v.sizes)
+        ? v.sizes.map((s: any) => ({
+            ...s,
+            ...(s.price != null ? { price: Number(s.price) } : {}),
+            ...(s.costPrice != null ? { costPrice: Number(s.costPrice) } : {}),
+          }))
+        : [],
+      images: Array.isArray(v.images) ? v.images : [],
+    }))
+  }
   return out as T
 }
 
@@ -32,6 +45,19 @@ function hideFinancialProductFields<T extends Record<string, any> | null | undef
       delete safe.price
       return safe
     })
+  }
+  if (Array.isArray(out.variants)) {
+    out.variants = out.variants.map((variant: any) => ({
+      ...variant,
+      sizes: Array.isArray(variant.sizes)
+        ? variant.sizes.map((s: any) => {
+            const safe = { ...s }
+            delete safe.costPrice
+            delete safe.price
+            return safe
+          })
+        : [],
+    }))
   }
   return out as T
 }
@@ -66,6 +92,13 @@ export class ProductsService {
         where,
         include: {
           sizes: { orderBy: { size: 'asc' } },
+          variants: {
+            orderBy: { sortOrder: 'asc' },
+            include: {
+              images: { orderBy: { sortOrder: 'asc' } },
+              sizes: { orderBy: { size: 'asc' } },
+            },
+          },
           brand: { select: { id: true, name: true } },
           _count: { select: { movements: true } },
         },
@@ -107,6 +140,13 @@ export class ProductsService {
       include: {
         brand: { select: { name: true } },
         sizes: { select: { size: true, quantity: true } },
+        variants: {
+          select: {
+            colorName: true,
+            sizes: { select: { size: true, quantity: true } },
+          },
+          orderBy: { sortOrder: 'asc' },
+        },
       },
       orderBy: { createdAt: 'desc' },
       take: 10_000,
@@ -119,6 +159,13 @@ export class ProductsService {
       where: { id, storeId: scope.storeId, deletedAt: null },
       include: {
         sizes: { orderBy: { size: 'asc' } },
+        variants: {
+          orderBy: { sortOrder: 'asc' },
+          include: {
+            images: { orderBy: { sortOrder: 'asc' } },
+            sizes: { orderBy: { size: 'asc' } },
+          },
+        },
         brand: { select: { id: true, name: true } },
         movements: {
           take: 10,
@@ -158,20 +205,50 @@ export class ProductsService {
           lowStockThreshold: input.lowStockThreshold ?? 5,
           isActive: input.isActive ?? true,
           sizes: {
-            create: (input.sizes ?? []).map((s) => ({
+            create: (input.variants?.length ? [] : input.sizes ?? []).map((s) => ({
               size: s.size,
               quantity: s.quantity ?? 0,
             })),
           },
         },
-        include: { sizes: true, brand: { select: { id: true, name: true } } },
+        include: {
+          sizes: true,
+          variants: {
+            include: {
+              images: { orderBy: { sortOrder: 'asc' } },
+              sizes: { orderBy: { size: 'asc' } },
+            },
+            orderBy: { sortOrder: 'asc' },
+          },
+          brand: { select: { id: true, name: true } },
+        },
       })
+
+      if (input.variants?.length) {
+        await this.replaceVariants(tx, product.id, input.variants)
+      }
 
       if (userId) {
         await rewardsService.createProductAddedEvent(tx, userId, product.id, scope.storeId)
       }
 
-      return serializeProduct(product)
+      const result = await tx.product.findUnique({
+        where: { id: product.id },
+        include: {
+          sizes: { orderBy: { size: 'asc' } },
+          variants: {
+            include: {
+              images: { orderBy: { sortOrder: 'asc' } },
+              sizes: { orderBy: { size: 'asc' } },
+            },
+            orderBy: { sortOrder: 'asc' },
+          },
+          brand: { select: { id: true, name: true } },
+        },
+      })
+      if (!result) throw new Error('Product not found after create')
+
+      return serializeProduct(result)
     })
   }
 
@@ -212,7 +289,7 @@ export class ProductsService {
       })
 
       if (input.sizes) {
-        const existing = await tx.productSize.findMany({ where: { productId: id } })
+        const existing = await tx.productSize.findMany({ where: { productId: id, variantId: null } })
         const incomingSizes = input.sizes.map((s) => s.size)
 
         // Delete sizes no longer present (only if they have no stock movements)
@@ -226,20 +303,132 @@ export class ProductsService {
 
         // Upsert each incoming size
         for (const s of input.sizes) {
-          await tx.productSize.upsert({
-            where: { productId_size: { productId: id, size: s.size } },
-            update: { quantity: s.quantity ?? 0 },
-            create: { productId: id, size: s.size, quantity: s.quantity ?? 0 },
-          })
+          const existingSize = existing.find((row) => row.size === s.size)
+          if (existingSize) {
+            await tx.productSize.update({
+              where: { id: existingSize.id },
+              data: { quantity: s.quantity ?? 0 },
+            })
+          } else {
+            await tx.productSize.create({
+              data: { productId: id, size: s.size, quantity: s.quantity ?? 0 },
+            })
+          }
         }
+      }
+
+      if (input.variants) {
+        await this.replaceVariants(tx, id, input.variants)
       }
 
       const result = await tx.product.findUnique({
         where: { id },
-        include: { sizes: true, brand: { select: { id: true, name: true } } },
+        include: {
+          sizes: { orderBy: { size: 'asc' } },
+          variants: {
+            include: {
+              images: { orderBy: { sortOrder: 'asc' } },
+              sizes: { orderBy: { size: 'asc' } },
+            },
+            orderBy: { sortOrder: 'asc' },
+          },
+          brand: { select: { id: true, name: true } },
+        },
       })
       return serializeProduct(result)
     })
+  }
+
+  private async replaceVariants(
+    tx: any,
+    productId: string,
+    variants: NonNullable<UpdateProductInput['variants']>,
+  ) {
+    const existingVariants = await tx.productVariant.findMany({
+      where: { productId },
+      include: { sizes: true },
+    })
+    const incomingIds = new Set(variants.map((variant) => variant.id).filter(Boolean))
+
+    for (const variant of existingVariants) {
+      if (!incomingIds.has(variant.id)) {
+        const sizeIds = variant.sizes.map((size: { id: string }) => size.id)
+        const movementCount = sizeIds.length
+          ? await tx.stockMovement.count({ where: { productSizeId: { in: sizeIds } } })
+          : 0
+        if (movementCount === 0) {
+          await tx.productVariant.delete({ where: { id: variant.id } })
+        }
+      }
+    }
+
+    for (const [index, variant] of variants.entries()) {
+      const imageUrl = variant.imageUrl ?? variant.images?.[0]?.url ?? null
+      const existingVariant = variant.id
+        ? existingVariants.find((current: { id: string }) => current.id === variant.id)
+        : null
+      const savedVariant = existingVariant
+        ? await tx.productVariant.update({
+            where: { id: existingVariant.id },
+            data: {
+              colorName: variant.colorName,
+              colorHex: variant.colorHex ?? null,
+              imageUrl,
+              sortOrder: index,
+              images: {
+                deleteMany: {},
+                create: (variant.images ?? [])
+                  .filter((image) => image.url)
+                  .map((image, imageIndex) => ({ url: image.url, sortOrder: imageIndex })),
+              },
+            },
+          })
+        : await tx.productVariant.create({
+            data: {
+              productId,
+              colorName: variant.colorName,
+              colorHex: variant.colorHex ?? null,
+              imageUrl,
+              sortOrder: index,
+              images: {
+                create: (variant.images ?? [])
+                  .filter((image) => image.url)
+                  .map((image, imageIndex) => ({ url: image.url, sortOrder: imageIndex })),
+              },
+            },
+          })
+
+      const existingSizes = await tx.productSize.findMany({
+        where: { productId, variantId: savedVariant.id },
+      })
+      const incomingSizes = variant.sizes.map((size) => size.size)
+
+      for (const size of existingSizes.filter((row: { size: string }) => !incomingSizes.includes(row.size))) {
+        const movementCount = await tx.stockMovement.count({ where: { productSizeId: size.id } })
+        if (movementCount === 0) {
+          await tx.productSize.delete({ where: { id: size.id } })
+        }
+      }
+
+      for (const size of variant.sizes) {
+        const existingSize = existingSizes.find((row: { size: string }) => row.size === size.size)
+        if (existingSize) {
+          await tx.productSize.update({
+            where: { id: existingSize.id },
+            data: { quantity: size.quantity ?? 0 },
+          })
+        } else {
+          await tx.productSize.create({
+            data: {
+              productId,
+              variantId: savedVariant.id,
+              size: size.size,
+              quantity: size.quantity ?? 0,
+            },
+          })
+        }
+      }
+    }
   }
 
   async delete(id: string, scope: StoreScope) {

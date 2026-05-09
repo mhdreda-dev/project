@@ -26,9 +26,17 @@ export async function GET(req: NextRequest) {
     const products = await productsService.listAll(filters, scope)
 
     const rows = products.map((p: any) => {
-      const totalStock = (p.sizes ?? []).reduce((s: number, sz: any) => s + (sz.quantity ?? 0), 0)
-      const sizes = (p.sizes ?? [])
-        .map((sz: any) => `${sz.size}:${sz.quantity}`)
+      const sizeRows = (p.variants?.length
+        ? p.variants.flatMap((variant: any) =>
+            (variant.sizes ?? []).map((size: any) => ({
+              ...size,
+              label: `${variant.colorName} / ${size.size}`,
+            })),
+          )
+        : (p.sizes ?? []).map((size: any) => ({ ...size, label: size.size })))
+      const totalStock = sizeRows.reduce((s: number, sz: any) => s + (sz.quantity ?? 0), 0)
+      const sizes = sizeRows
+        .map((sz: any) => `${sz.label}:${sz.quantity}`)
         .join(' | ')
       return {
         sku: p.sku,

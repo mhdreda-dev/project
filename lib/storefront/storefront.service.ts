@@ -16,6 +16,23 @@ const PUBLIC_PRODUCT_SELECT = {
     select: { size: true, quantity: true },
     orderBy: { size: 'asc' as const },
   },
+  variants: {
+    select: {
+      id: true,
+      colorName: true,
+      colorHex: true,
+      imageUrl: true,
+      images: {
+        select: { url: true },
+        orderBy: { sortOrder: 'asc' as const },
+      },
+      sizes: {
+        select: { size: true, quantity: true },
+        orderBy: { size: 'asc' as const },
+      },
+    },
+    orderBy: { sortOrder: 'asc' as const },
+  },
   brand: { select: { id: true, name: true, slug: true } },
 } as const
 
@@ -25,9 +42,11 @@ function toNum(v: unknown): number {
 }
 
 function serializeProduct<T extends Record<string, any>>(p: T) {
-  const totalStock = Array.isArray(p.sizes)
-    ? (p.sizes as { quantity: number }[]).reduce((s, r) => s + r.quantity, 0)
-    : 0
+  const variantSizes = Array.isArray(p.variants)
+    ? (p.variants as { sizes?: { quantity: number }[] }[]).flatMap((variant) => variant.sizes ?? [])
+    : []
+  const stockRows = variantSizes.length ? variantSizes : Array.isArray(p.sizes) ? (p.sizes as { quantity: number }[]) : []
+  const totalStock = stockRows.reduce((s, r) => s + r.quantity, 0)
   return { ...p, price: toNum(p.price), totalStock }
 }
 

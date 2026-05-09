@@ -1,17 +1,18 @@
 'use client'
 
-import { useState, useCallback, useEffect, useRef } from 'react'
+import { useState, useCallback } from 'react'
 import { SafeImage } from '@/components/ui/safe-image'
 import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 import {
   Plus, Search, Package, Pencil, Trash2, X, ChevronLeft, ChevronRight,
-  AlertTriangle, Loader2, Check,
+  AlertTriangle, Loader2, Check, ChevronDown,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { PageHeader } from '@/components/ui/page-header'
 import { EmptyState } from '@/components/ui/empty-state'
 import { ImageUpload } from '@/components/ui/image-upload'
@@ -30,6 +31,15 @@ type ProductSize = {
   quantity: number
 }
 
+type ProductVariant = {
+  id: string
+  colorName: string
+  colorHex: string | null
+  imageUrl: string | null
+  images: { id: string; url: string }[]
+  sizes: ProductSize[]
+}
+
 type Product = {
   id: string
   name: string
@@ -44,6 +54,7 @@ type Product = {
   brandId: string | null
   brand: { id: string; name: string } | null
   sizes: ProductSize[]
+  variants?: ProductVariant[]
   _count?: { movements: number }
 }
 
@@ -64,11 +75,56 @@ interface Props {
 }
 
 type PresetKey = 'clothing' | 'shoes' | 'other'
+type ProductCategoryValue = 'shoes' | 'sandals' | 'tshirt' | 'clothing' | 'accessories' | 'other'
 
 const SIZE_PRESETS: Record<PresetKey, { sizes: string[] }> = {
   clothing: { sizes: ['S', 'M', 'L', 'XL', 'XXL'] },
   shoes:    { sizes: ['30', '31', '32', '33', '34', '35', '36', '37', '38', '39', '40', '41', '42', '43', '44'] },
   other:    { sizes: [] },
+}
+
+const PRODUCT_CATEGORIES: { value: ProductCategoryValue; label: string }[] = [
+  { value: 'shoes', label: 'Shoes / Chaussures' },
+  { value: 'sandals', label: 'Sandals / Sandales' },
+  { value: 'tshirt', label: 'T-Shirt' },
+  { value: 'clothing', label: 'Clothing / Vêtements' },
+  { value: 'accessories', label: 'Accessories / Accessoires' },
+  { value: 'other', label: 'Other / Autre' },
+]
+
+const CATEGORY_ALIASES: Record<string, ProductCategoryValue> = {
+  shoes: 'shoes',
+  shoe: 'shoes',
+  chaussure: 'shoes',
+  chaussures: 'shoes',
+  sneaker: 'shoes',
+  sneakers: 'shoes',
+  sandals: 'sandals',
+  sandal: 'sandals',
+  sandales: 'sandals',
+  sandale: 'sandals',
+  tshirt: 'tshirt',
+  't-shirt': 'tshirt',
+  't shirt': 'tshirt',
+  tee: 'tshirt',
+  clothing: 'clothing',
+  clothes: 'clothing',
+  vetements: 'clothing',
+  vêtements: 'clothing',
+  vetement: 'clothing',
+  vêtement: 'clothing',
+  accessories: 'accessories',
+  accessory: 'accessories',
+  accessoires: 'accessories',
+  accessoire: 'accessories',
+  other: 'other',
+  autre: 'other',
+}
+
+function normalizeCategoryValue(category: string | null | undefined) {
+  const normalized = category?.trim().toLowerCase()
+  if (!normalized) return ''
+  return CATEGORY_ALIASES[normalized] ?? 'other'
 }
 
 const DEFAULT_FORM = {
@@ -85,6 +141,32 @@ const DEFAULT_FORM = {
 }
 
 type SelectedSize = { size: string; quantity: number }
+type VariantForm = {
+  clientId: string
+  id?: string
+  colorName: string
+  colorHex: string
+  imageUrl: string
+  extraImageUrl: string
+  images: { url: string }[]
+  sizes: SelectedSize[]
+  customSize: string
+  expanded: boolean
+}
+
+function createEmptyVariant(): VariantForm {
+  return {
+    clientId: crypto.randomUUID(),
+    colorName: '',
+    colorHex: '#111827',
+    imageUrl: '',
+    extraImageUrl: '',
+    images: [],
+    sizes: [],
+    customSize: '',
+    expanded: true,
+  }
+}
 
 export function ProductsClient({ initialProducts, meta: initialMeta, brands, isAdmin }: Props) {
   const router = useRouter()
@@ -119,6 +201,7 @@ export function ProductsClient({ initialProducts, meta: initialMeta, brands, isA
   const [preset, setPreset] = useState<PresetKey>('other')
   const [selected, setSelected] = useState<SelectedSize[]>([])
   const [customSize, setCustomSize] = useState('')
+  const [variants, setVariants] = useState<VariantForm[]>([])
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState<string | null>(null)
 
@@ -169,6 +252,7 @@ export function ProductsClient({ initialProducts, meta: initialMeta, brands, isA
     setPreset('other')
     setSelected([])
     setCustomSize('')
+    setVariants([])
     setModalOpen(true)
   }
 
@@ -177,7 +261,7 @@ export function ProductsClient({ initialProducts, meta: initialMeta, brands, isA
     setForm({
       name: product.name,
       sku: product.sku,
-      category: product.category ?? '',
+      category: normalizeCategoryValue(product.category),
       description: product.description ?? '',
       imageUrl: product.imageUrl ?? '',
       brandId: product.brandId ?? '',
@@ -193,6 +277,20 @@ export function ProductsClient({ initialProducts, meta: initialMeta, brands, isA
     setPreset(inClothing ? 'clothing' : inShoes ? 'shoes' : 'other')
     setSelected(product.sizes.map((s) => ({ size: s.size, quantity: s.quantity })))
     setCustomSize('')
+    setVariants(
+      (product.variants ?? []).map((variant, index) => ({
+        clientId: variant.id || crypto.randomUUID(),
+        id: variant.id,
+        colorName: variant.colorName,
+        colorHex: variant.colorHex ?? '#111827',
+        imageUrl: variant.imageUrl ?? '',
+        extraImageUrl: '',
+        images: (variant.images ?? []).map((image) => ({ url: image.url })),
+        sizes: variant.sizes.map((s) => ({ size: s.size, quantity: s.quantity })),
+        customSize: '',
+        expanded: index === 0,
+      })),
+    )
     setModalOpen(true)
   }
 
@@ -223,12 +321,119 @@ export function ProductsClient({ initialProducts, meta: initialMeta, brands, isA
     setSelected((prev) => prev.filter((s) => s.size !== sizeLabel))
   }
 
+  function addVariant() {
+    setVariants((prev) => [...prev.map((variant) => ({ ...variant, expanded: false })), createEmptyVariant()])
+  }
+
+  function updateVariant(clientId: string, patch: Partial<VariantForm>) {
+    setVariants((prev) => prev.map((variant) => (variant.clientId === clientId ? { ...variant, ...patch } : variant)))
+  }
+
+  function removeVariant(clientId: string) {
+    setVariants((prev) => prev.filter((variant) => variant.clientId !== clientId))
+  }
+
+  function toggleVariantSize(clientId: string, sizeLabel: string) {
+    setVariants((prev) =>
+      prev.map((variant) => {
+        if (variant.clientId !== clientId) return variant
+        const existing = variant.sizes.find((size) => size.size === sizeLabel)
+        return {
+          ...variant,
+          sizes: existing
+            ? variant.sizes.filter((size) => size.size !== sizeLabel)
+            : [...variant.sizes, { size: sizeLabel, quantity: 0 }],
+        }
+      }),
+    )
+  }
+
+  function updateVariantSizeQty(clientId: string, sizeLabel: string, quantity: number) {
+    setVariants((prev) =>
+      prev.map((variant) =>
+        variant.clientId === clientId
+          ? {
+              ...variant,
+              sizes: variant.sizes.map((size) =>
+                size.size === sizeLabel ? { ...size, quantity } : size,
+              ),
+            }
+          : variant,
+      ),
+    )
+  }
+
+  function addVariantCustomSize(clientId: string) {
+    setVariants((prev) =>
+      prev.map((variant) => {
+        if (variant.clientId !== clientId) return variant
+        const label = variant.customSize.trim()
+        if (!label || variant.sizes.some((size) => size.size === label)) {
+          return { ...variant, customSize: '' }
+        }
+        return {
+          ...variant,
+          customSize: '',
+          sizes: [...variant.sizes, { size: label, quantity: 0 }],
+        }
+      }),
+    )
+  }
+
+  function removeVariantSize(clientId: string, sizeLabel: string) {
+    setVariants((prev) =>
+      prev.map((variant) =>
+        variant.clientId === clientId
+          ? { ...variant, sizes: variant.sizes.filter((size) => size.size !== sizeLabel) }
+          : variant,
+      ),
+    )
+  }
+
+  function addVariantImage(clientId: string) {
+    setVariants((prev) =>
+      prev.map((variant) => {
+        if (variant.clientId !== clientId) return variant
+        const url = variant.extraImageUrl.trim()
+        if (!url) return variant
+        return {
+          ...variant,
+          extraImageUrl: '',
+          images: [...variant.images, { url }],
+          imageUrl: variant.imageUrl || url,
+        }
+      }),
+    )
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
 
     const priceNum = Number(form.price)
     if (!Number.isFinite(priceNum) || priceNum < 0) {
       toast({ title: t('products.toast.invalidSalePrice'), variant: 'destructive' })
+      return
+    }
+    if (!PRODUCT_CATEGORIES.some((category) => category.value === form.category)) {
+      toast({ title: 'Choose a category', variant: 'destructive' })
+      return
+    }
+    const cleanVariants = variants
+      .map((variant) => ({
+        id: variant.id,
+        colorName: variant.colorName.trim(),
+        colorHex: variant.colorHex || null,
+        imageUrl: variant.imageUrl || variant.images[0]?.url || null,
+        images: [
+          ...(variant.imageUrl ? [{ url: variant.imageUrl }] : []),
+          ...variant.images.filter((image) => image.url && image.url !== variant.imageUrl),
+        ],
+        sizes: variant.sizes.map((s) => ({ size: s.size, quantity: Number(s.quantity) || 0 })),
+      }))
+      .filter((variant) => variant.colorName)
+
+    if (variants.length > 0 && cleanVariants.length !== variants.length) {
+      toast({ title: 'Every color variant needs a color name', variant: 'destructive' })
       return
     }
 
@@ -238,14 +443,17 @@ export function ProductsClient({ initialProducts, meta: initialMeta, brands, isA
         name: form.name.trim(),
         sku: form.sku.trim(),
         brandId: form.brandId || null,
-        category: form.category || null,
+        category: form.category,
         description: form.description || null,
         imageUrl: form.imageUrl || null,
         price: priceNum,
         costPrice: form.costPrice ? Number(form.costPrice) : null,
         lowStockThreshold: Number(form.lowStockThreshold) || 0,
         isActive: form.isActive,
-        sizes: selected.map((s) => ({ size: s.size, quantity: Number(s.quantity) || 0 })),
+        sizes: cleanVariants.length
+          ? []
+          : selected.map((s) => ({ size: s.size, quantity: Number(s.quantity) || 0 })),
+        variants: cleanVariants,
       }
       const url = editing ? `/api/products/${editing.id}` : '/api/products'
       const method = editing ? 'PATCH' : 'POST'
@@ -287,7 +495,7 @@ export function ProductsClient({ initialProducts, meta: initialMeta, brands, isA
   const customSelected = selected.filter((s) => !presetSizes.includes(s.size))
 
   return (
-    <div>
+    <div className="pb-24 sm:pb-28">
       <PageHeader
         title={t('products.title')}
         description={t('products.description', { count: meta.total })}
@@ -364,7 +572,9 @@ export function ProductsClient({ initialProducts, meta: initialMeta, brands, isA
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {products.map((product) => {
-            const totalQty = product.sizes.reduce((s, sz) => s + sz.quantity, 0)
+            const variantSizes = (product.variants ?? []).flatMap((variant) => variant.sizes)
+            const displaySizes = variantSizes.length ? variantSizes : product.sizes
+            const totalQty = displaySizes.reduce((s, sz) => s + sz.quantity, 0)
             const isLow = totalQty <= (product.lowStockThreshold ?? 0)
             const priceNum = Number(product.price ?? 0)
 
@@ -427,18 +637,18 @@ export function ProductsClient({ initialProducts, meta: initialMeta, brands, isA
                     <p className="text-xs text-slate-400 mt-0.5">{t('common.labels.skuValue', { sku: product.sku })}</p>
                   </div>
 
-                  {product.sizes.length > 0 && (
+                  {displaySizes.length > 0 && (
                     <div className="flex flex-wrap gap-1 my-2">
-                      {product.sizes.slice(0, 6).map((s) => (
+                      {displaySizes.slice(0, 6).map((s, idx) => (
                         <span
-                          key={s.id}
+                          key={`${s.size}-${idx}`}
                           className="text-[10px] px-1.5 py-0.5 rounded border font-medium bg-slate-50 border-slate-200 text-slate-600"
                         >
                           {s.size}
                         </span>
                       ))}
-                      {product.sizes.length > 6 && (
-                        <span className="text-[10px] text-slate-400">+{product.sizes.length - 6}</span>
+                      {displaySizes.length > 6 && (
+                        <span className="text-[10px] text-slate-400">+{displaySizes.length - 6}</span>
                       )}
                     </div>
                   )}
@@ -493,83 +703,92 @@ export function ProductsClient({ initialProducts, meta: initialMeta, brands, isA
 
       {/* Create / Edit Modal */}
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl">
-          <DialogHeader>
+        <DialogContent className="flex max-h-[calc(100vh-2rem)] w-[calc(100vw-2rem)] max-w-4xl flex-col gap-0 overflow-hidden rounded-2xl p-0 sm:max-w-4xl">
+          <DialogHeader className="border-b border-slate-100 px-5 py-4 pr-12 sm:px-6">
             <DialogTitle>{editing ? t('products.dialog.editTitle') : t('products.dialog.newTitle')}</DialogTitle>
           </DialogHeader>
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <ImageUpload
-              value={form.imageUrl}
-              onChange={(url) => setForm((f) => ({ ...f, imageUrl: url ?? '' }))}
-            />
+          <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
+            <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5 sm:px-6">
+              <div className="space-y-5">
+                <div className="grid grid-cols-1 gap-5 lg:grid-cols-[280px_minmax(0,1fr)] lg:items-start">
+                  <ImageUpload
+                    value={form.imageUrl}
+                    onChange={(url) => setForm((f) => ({ ...f, imageUrl: url ?? '' }))}
+                    className="lg:sticky lg:top-0 [&_.h-48]:h-56"
+                  />
 
-            {/* Basic info */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="name">{t('products.dialog.nameRequired')}</Label>
-                <Input
-                  id="name"
-                  value={form.name}
-                  onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-                  placeholder="Classic T-Shirt"
-                  required
-                  className="mt-1 rounded-xl"
-                />
-              </div>
-              <div>
-                <Label htmlFor="sku">{t('products.dialog.skuRequired')}</Label>
-                <Input
-                  id="sku"
-                  value={form.sku}
-                  onChange={(e) => setForm((f) => ({ ...f, sku: e.target.value }))}
-                  placeholder="TS-001"
-                  required
-                  className="mt-1 rounded-xl"
-                />
-              </div>
-            </div>
+                  {/* Basic info */}
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div>
+                      <Label htmlFor="name">{t('products.dialog.nameRequired')}</Label>
+                      <Input
+                        id="name"
+                        value={form.name}
+                        onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+                        placeholder="Classic T-Shirt"
+                        required
+                        className="mt-1 rounded-xl"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="sku">{t('products.dialog.skuRequired')}</Label>
+                      <Input
+                        id="sku"
+                        value={form.sku}
+                        onChange={(e) => setForm((f) => ({ ...f, sku: e.target.value }))}
+                        placeholder="TS-001"
+                        required
+                        className="mt-1 rounded-xl"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="brand">{t('common.labels.brand')}</Label>
+                      <select
+                        id="brand"
+                        value={form.brandId}
+                        onChange={(e) => setForm((f) => ({ ...f, brandId: e.target.value }))}
+                        className="mt-1 h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      >
+                        <option value="">{t('common.labels.noBrand')}</option>
+                        {brands.map((b) => (
+                          <option key={b.id} value={b.id}>{b.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <Label htmlFor="category">{t('common.labels.category')} *</Label>
+                      <Select
+                        value={form.category}
+                        onValueChange={(value) => setForm((f) => ({ ...f, category: value }))}
+                      >
+                        <SelectTrigger id="category" className="mt-1 rounded-xl border-slate-200">
+                          <SelectValue placeholder="Choose a category" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {PRODUCT_CATEGORIES.map((category) => (
+                            <SelectItem key={category.value} value={category.value}>
+                              {category.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="sm:col-span-2">
+                      <Label htmlFor="description">{t('products.dialog.description')}</Label>
+                      <textarea
+                        id="description"
+                        value={form.description}
+                        onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+                        placeholder={t('common.placeholders.productDescription')}
+                        rows={3}
+                        className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                      />
+                    </div>
+                  </div>
+                </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="brand">{t('common.labels.brand')}</Label>
-                <select
-                  id="brand"
-                  value={form.brandId}
-                  onChange={(e) => setForm((f) => ({ ...f, brandId: e.target.value }))}
-                  className="mt-1 w-full h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="">{t('common.labels.noBrand')}</option>
-                  {brands.map((b) => (
-                    <option key={b.id} value={b.id}>{b.name}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <Label htmlFor="category">{t('common.labels.category')}</Label>
-                <Input
-                  id="category"
-                  value={form.category}
-                  onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
-                  placeholder={t('common.placeholders.categoryExample')}
-                  className="mt-1 rounded-xl"
-                />
-              </div>
-            </div>
-
-            <div>
-              <Label htmlFor="description">{t('products.dialog.description')}</Label>
-              <textarea
-                id="description"
-                value={form.description}
-                onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-                placeholder={t('common.placeholders.productDescription')}
-                rows={2}
-                className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-              />
-            </div>
-
-            {/* Pricing (product-level) */}
-            <div className={`grid grid-cols-1 gap-4 ${isAdmin ? 'sm:grid-cols-3' : 'sm:grid-cols-2'}`}>
+                {/* Pricing (product-level) */}
+                <div className={`grid grid-cols-1 gap-4 ${isAdmin ? 'sm:grid-cols-3' : 'sm:grid-cols-2'}`}>
               <div>
                 <Label htmlFor="price">{t('common.labels.salePriceMad')} *</Label>
                 <Input
@@ -610,10 +829,10 @@ export function ProductsClient({ initialProducts, meta: initialMeta, brands, isA
                   className="mt-1 rounded-xl"
                 />
               </div>
-            </div>
+                </div>
 
-            {/* Sizes */}
-            <div>
+                {/* Sizes */}
+                <div className="rounded-2xl border border-slate-100 bg-slate-50/60 p-4">
               <div className="flex items-center justify-between mb-2">
                 <Label>{t('products.dialog.sizes')}</Label>
                 <div className="flex gap-1.5">
@@ -721,20 +940,242 @@ export function ProductsClient({ initialProducts, meta: initialMeta, brands, isA
                   {t('products.dialog.includesCustomSizes', { count: customSelected.length })}
                 </p>
               )}
+              {variants.length > 0 && (
+                <p className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
+                  Simple sizes are ignored while color variants are enabled. Stock will come from each color card.
+                </p>
+              )}
+                </div>
+
+                {/* Color variants */}
+                <div className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
+                  <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <Label>Variants / Colors</Label>
+                      <p className="mt-1 text-xs text-slate-500">
+                        Add colors when one product has separate images and stock per color.
+                      </p>
+                    </div>
+                    <Button type="button" variant="outline" onClick={addVariant} className="rounded-xl gap-2">
+                      <Plus className="h-4 w-4" />
+                      Add color variant
+                    </Button>
+                  </div>
+
+                  {variants.length === 0 ? (
+                    <p className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-3 py-4 text-sm text-slate-500">
+                      No color variants. This product will use the simple image, sizes, and stock above.
+                    </p>
+                  ) : (
+                    <div className="space-y-3">
+                      {variants.map((variant, index) => {
+                        const total = variant.sizes.reduce((sum, size) => sum + Number(size.quantity || 0), 0)
+                        return (
+                          <div key={variant.clientId} className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
+                            <button
+                              type="button"
+                              onClick={() => updateVariant(variant.clientId, { expanded: !variant.expanded })}
+                              className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left"
+                            >
+                              <span className="flex min-w-0 items-center gap-3">
+                                <span
+                                  className="h-6 w-6 shrink-0 rounded-full border border-slate-200 shadow-sm"
+                                  style={{ backgroundColor: variant.colorHex || '#111827' }}
+                                  aria-hidden="true"
+                                />
+                                <span className="min-w-0">
+                                  <span className="block truncate text-sm font-semibold text-slate-900">
+                                    {variant.colorName || `Color variant ${index + 1}`}
+                                  </span>
+                                  <span className="block text-xs text-slate-500">
+                                    {variant.sizes.length} sizes · {total} units
+                                  </span>
+                                </span>
+                              </span>
+                              <span className="flex items-center gap-2">
+                                <span className="hidden rounded-full bg-white px-2 py-1 text-xs text-slate-500 sm:inline">
+                                  {variant.expanded ? 'Collapse' : 'Edit'}
+                                </span>
+                                <ChevronDown
+                                  className={`h-4 w-4 text-slate-400 transition-transform ${variant.expanded ? 'rotate-180' : ''}`}
+                                />
+                              </span>
+                            </button>
+
+                            {variant.expanded && (
+                              <div className="space-y-4 border-t border-slate-200 bg-white p-4">
+                                <div className="grid gap-4 sm:grid-cols-[180px_minmax(0,1fr)]">
+                                  <ImageUpload
+                                    value={variant.imageUrl}
+                                    onChange={(url) => updateVariant(variant.clientId, { imageUrl: url ?? '' })}
+                                    className="[&_.h-48]:h-40"
+                                  />
+                                  <div className="grid gap-4 sm:grid-cols-2">
+                                    <div>
+                                      <Label>Color name *</Label>
+                                      <Input
+                                        value={variant.colorName}
+                                        onChange={(e) => updateVariant(variant.clientId, { colorName: e.target.value })}
+                                        placeholder="Beige"
+                                        className="mt-1 rounded-xl"
+                                      />
+                                    </div>
+                                    <div>
+                                      <Label>Swatch</Label>
+                                      <div className="mt-1 flex gap-2">
+                                        <Input
+                                          type="color"
+                                          value={variant.colorHex}
+                                          onChange={(e) => updateVariant(variant.clientId, { colorHex: e.target.value })}
+                                          className="h-10 w-14 rounded-xl p-1"
+                                        />
+                                        <Input
+                                          value={variant.colorHex}
+                                          onChange={(e) => updateVariant(variant.clientId, { colorHex: e.target.value })}
+                                          placeholder="#111827"
+                                          className="rounded-xl"
+                                        />
+                                      </div>
+                                    </div>
+                                    <div className="sm:col-span-2">
+                                      <Label>Extra image URL</Label>
+                                      <div className="mt-1 flex gap-2">
+                                        <Input
+                                          value={variant.extraImageUrl}
+                                          onChange={(e) => updateVariant(variant.clientId, { extraImageUrl: e.target.value })}
+                                          placeholder="https://..."
+                                          className="rounded-xl"
+                                        />
+                                        <Button type="button" variant="outline" onClick={() => addVariantImage(variant.clientId)} className="rounded-xl">
+                                          Add
+                                        </Button>
+                                      </div>
+                                      {variant.images.length > 0 && (
+                                        <div className="mt-2 flex flex-wrap gap-2">
+                                          {variant.images.map((image, imageIndex) => (
+                                            <button
+                                              key={`${image.url}-${imageIndex}`}
+                                              type="button"
+                                              onClick={() =>
+                                                updateVariant(variant.clientId, {
+                                                  images: variant.images.filter((_, idx) => idx !== imageIndex),
+                                                })
+                                              }
+                                              className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs text-slate-600 hover:border-red-200 hover:text-red-600"
+                                            >
+                                              Image {imageIndex + 1} ×
+                                            </button>
+                                          ))}
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+
+                                <div>
+                                  <div className="mb-2 flex items-center justify-between gap-3">
+                                    <Label>Sizes and stock for this color</Label>
+                                    <button
+                                      type="button"
+                                      onClick={() => removeVariant(variant.clientId)}
+                                      className="text-xs font-medium text-red-500 hover:text-red-600"
+                                    >
+                                      Remove variant
+                                    </button>
+                                  </div>
+                                  <div className="mb-3 flex flex-wrap gap-1.5">
+                                    {[...SIZE_PRESETS.clothing.sizes, ...SIZE_PRESETS.shoes.sizes].map((size) => {
+                                      const isSelected = variant.sizes.some((item) => item.size === size)
+                                      return (
+                                        <button
+                                          key={size}
+                                          type="button"
+                                          onClick={() => toggleVariantSize(variant.clientId, size)}
+                                          className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-medium transition-all ${
+                                            isSelected
+                                              ? 'border-blue-400 bg-blue-50 text-blue-700'
+                                              : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
+                                          }`}
+                                        >
+                                          {isSelected && <Check className="h-3 w-3" />}
+                                          {size}
+                                        </button>
+                                      )
+                                    })}
+                                  </div>
+                                  <div className="mb-3 flex gap-2">
+                                    <Input
+                                      value={variant.customSize}
+                                      onChange={(e) => updateVariant(variant.clientId, { customSize: e.target.value })}
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Enter') {
+                                          e.preventDefault()
+                                          addVariantCustomSize(variant.clientId)
+                                        }
+                                      }}
+                                      placeholder={t('common.placeholders.customSize')}
+                                      className="h-9 rounded-xl text-sm"
+                                    />
+                                    <Button type="button" variant="outline" onClick={() => addVariantCustomSize(variant.clientId)} className="h-9 rounded-xl">
+                                      {t('common.actions.add')}
+                                    </Button>
+                                  </div>
+                                  {variant.sizes.length === 0 ? (
+                                    <p className="text-xs italic text-slate-400">No sizes selected for this color.</p>
+                                  ) : (
+                                    <div className="space-y-1.5">
+                                      <div className="grid grid-cols-[1fr_100px_32px] gap-2 px-1 text-[10px] font-medium uppercase tracking-wide text-slate-400">
+                                        <span>{t('common.labels.size')}</span>
+                                        <span>{t('common.labels.quantity')}</span>
+                                        <span />
+                                      </div>
+                                      {variant.sizes.map((size) => (
+                                        <div key={size.size} className="grid grid-cols-[1fr_100px_32px] items-center gap-2">
+                                          <div className="flex h-9 items-center rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm font-medium text-slate-700">
+                                            {size.size}
+                                          </div>
+                                          <Input
+                                            type="number"
+                                            min={0}
+                                            value={size.quantity}
+                                            onChange={(e) => updateVariantSizeQty(variant.clientId, size.size, Number(e.target.value) || 0)}
+                                            className="h-9 rounded-lg text-sm"
+                                          />
+                                          <button
+                                            type="button"
+                                            onClick={() => removeVariantSize(variant.clientId, size.size)}
+                                            className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-red-50 hover:text-red-500"
+                                          >
+                                            <X className="h-3.5 w-3.5" />
+                                          </button>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                {/* Active toggle */}
+                <label className="flex items-center gap-2.5 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={form.isActive}
+                    onChange={(e) => setForm((f) => ({ ...f, isActive: e.target.checked }))}
+                    className="h-4 w-4 rounded border-slate-300 text-blue-600"
+                  />
+                  <span className="text-sm text-slate-700">{t('products.dialog.activeVisible')}</span>
+                </label>
+              </div>
             </div>
 
-            {/* Active toggle */}
-            <label className="flex items-center gap-2.5 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={form.isActive}
-                onChange={(e) => setForm((f) => ({ ...f, isActive: e.target.checked }))}
-                className="h-4 w-4 rounded border-slate-300 text-blue-600"
-              />
-              <span className="text-sm text-slate-700">{t('products.dialog.activeVisible')}</span>
-            </label>
-
-            <div className="flex gap-3 pt-2">
+            <div className="flex shrink-0 flex-col-reverse gap-3 border-t border-slate-100 bg-white px-5 py-4 sm:flex-row sm:px-6">
               <Button type="button" variant="outline" className="flex-1 rounded-xl" onClick={() => setModalOpen(false)}>
                 {t('common.actions.cancel')}
               </Button>
