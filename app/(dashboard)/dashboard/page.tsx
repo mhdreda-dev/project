@@ -14,6 +14,10 @@ import {
   DollarSign,
   Wallet,
   Gift,
+  Target,
+  Trophy,
+  CalendarDays,
+  Coins,
 } from 'lucide-react'
 import { DashboardChart } from '@/components/dashboard/dashboard-chart'
 import { getServerI18n } from '@/lib/i18n/server'
@@ -25,11 +29,13 @@ export default async function DashboardPage() {
   const isAdmin = session?.user?.role === 'ADMIN'
   const scope = { storeId: getSessionStoreId(session) }
 
-  const [stats, lowStock, recentMovements, rewardSummary] = await Promise.all([
+  const [stats, lowStock, recentMovements, rewardSummary, walletSummary, employeeWallets] = await Promise.all([
     isAdmin ? productsService.getDashboardStats(scope) : productsService.getOperationalDashboardStats(scope),
     reportsService.getLowStockProducts(scope),
-    reportsService.getRecentStockMovements(scope, 5),
+    reportsService.getRecentStockMovements(scope, 5, isAdmin ? undefined : session?.user?.id),
     rewardsService.getEmployeeSummary(session?.user?.id ?? '', scope),
+    rewardsService.getEmployeeWalletDashboard(session?.user?.id ?? '', scope),
+    isAdmin ? rewardsService.getEmployeeWalletOverview(scope) : Promise.resolve([]),
   ])
 
   return (
@@ -43,9 +49,58 @@ export default async function DashboardPage() {
       </div>
 
       {isAdmin ? (
-        /* Rewards */
-        <div className="grid gap-6 lg:grid-cols-3">
-          <Card className="border-emerald-200 bg-gradient-to-br from-emerald-50 to-white lg:col-span-1">
+        <div className="space-y-6">
+          <div className="grid gap-6 lg:grid-cols-3">
+            <Card className="border-emerald-200 bg-gradient-to-br from-emerald-50 to-white lg:col-span-1">
+              <CardContent className="pt-6">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <p className="text-sm font-medium text-emerald-700">Commission control</p>
+                    <p className="mt-2 text-3xl font-bold text-slate-950">
+                      {formatCurrency(employeeWallets.reduce((sum, employee) => sum + employee.pendingPayoutMAD, 0))}
+                    </p>
+                    <p className="mt-2 text-xs text-muted-foreground">Pending payout across employees in this store.</p>
+                  </div>
+                  <div className="rounded-lg bg-emerald-100 p-2.5">
+                    <Wallet className="h-5 w-5 text-emerald-700" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="lg:col-span-2">
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Trophy className="h-4 w-4 text-amber-500" />
+                  Employee Sales Wallets
+                </CardTitle>
+                <CardDescription>Store-scoped commission from recorded product sales. Payout tracking can be added later.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {employeeWallets.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No employee sales activity yet.</p>
+                ) : (
+                  <div className="divide-y">
+                    {employeeWallets.slice(0, 5).map((employee) => (
+                      <div key={employee.id} className="grid gap-3 py-3 md:grid-cols-[minmax(0,1.4fr)_repeat(4,minmax(0,1fr))] md:items-center">
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium truncate">{employee.name}</p>
+                          <p className="text-xs text-muted-foreground truncate">{employee.email}</p>
+                        </div>
+                        <WalletMetric label="This week" value={formatCurrency(employee.salesAmountThisWeek)} />
+                        <WalletMetric label="Sold today" value={employee.soldToday.toLocaleString()} />
+                        <WalletMetric label="Commission earned" value={formatCurrency(employee.walletBalanceMAD)} strong />
+                        <WalletMetric label="Weekly target" value={`${employee.weeklyProgressPercent}%`} />
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="grid gap-6 lg:grid-cols-3">
+            <Card className="border-emerald-200 bg-gradient-to-br from-emerald-50 to-white lg:col-span-1">
             <CardContent className="pt-6">
               <div className="flex items-start justify-between gap-4">
                 <div>
@@ -60,9 +115,9 @@ export default async function DashboardPage() {
                 </div>
               </div>
             </CardContent>
-          </Card>
+            </Card>
 
-          <Card className="lg:col-span-2">
+            <Card className="lg:col-span-2">
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">
                 <Gift className="h-4 w-4 text-emerald-600" />
@@ -102,41 +157,101 @@ export default async function DashboardPage() {
                 )}
               </div>
             </CardContent>
-          </Card>
+            </Card>
+          </div>
         </div>
       ) : (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2">
-              <Gift className="h-4 w-4 text-emerald-600" />
-              Today&apos;s activity
-            </CardTitle>
-            <CardDescription>Product and sales actions recorded for your account.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <RewardMetric label="Products added today" value={rewardSummary.productsAddedTodayCount.toLocaleString()} />
-              <RewardMetric label="Products sold today" value={rewardSummary.productsSoldTodayCount.toLocaleString()} />
-            </div>
-            {rewardSummary.latestEvents.length > 0 && (
-              <div className="mt-5 space-y-3">
-                {rewardSummary.latestEvents.map((event) => (
-                  <div key={event.id} className="flex items-center justify-between gap-4 border-b pb-3 last:border-0 last:pb-0">
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium">
-                        {event.actionType === 'PRODUCT_ADDED' ? 'Product added' : 'Product sold'}
-                      </p>
-                      <p className="text-xs text-muted-foreground truncate">
-                        {event.product?.name ?? 'Archived product'} · Qty {event.quantity}
-                      </p>
-                    </div>
-                    <p className="text-xs text-muted-foreground shrink-0">{formatDate(event.createdAt)}</p>
+        <div className="space-y-6">
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            <EmployeeWalletCard
+              label="Sold today"
+              value={walletSummary.soldToday.toLocaleString()}
+              description={`${formatCurrency(walletSummary.salesAmountToday)} sales amount today`}
+              icon={<CalendarDays className="h-5 w-5 text-blue-600" />}
+            />
+            <EmployeeWalletCard
+              label="This week"
+              value={walletSummary.soldThisWeek.toLocaleString()}
+              description={`${formatCurrency(walletSummary.salesAmountThisWeek)} sales amount this week`}
+              icon={<TrendingUp className="h-5 w-5 text-emerald-600" />}
+            />
+            <EmployeeWalletCard
+              label="My Wallet"
+              value={formatCurrency(walletSummary.walletBalanceMAD)}
+              description={`${formatCurrency(walletSummary.pendingPayoutMAD)} pending payout`}
+              icon={<Wallet className="h-5 w-5 text-emerald-700" />}
+              highlight
+            />
+            <EmployeeWalletCard
+              label="Commission earned"
+              value={formatCurrency(walletSummary.commissionThisWeekMAD)}
+              description={`${formatCurrency(walletSummary.commissionTodayMAD)} earned today`}
+              icon={<Coins className="h-5 w-5 text-amber-600" />}
+            />
+            <Card className="md:col-span-2">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Target className="h-4 w-4 text-blue-600" />
+                  Weekly target
+                </CardTitle>
+                <CardDescription>
+                  You reached {walletSummary.weeklyProgressPercent}% of your weekly target.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-end justify-between gap-4">
+                  <div>
+                    <p className="text-2xl font-bold">{formatCurrency(walletSummary.salesAmountThisWeek)}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Goal: {formatCurrency(walletSummary.weeklyTargetMAD)}
+                    </p>
                   </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                  <Badge variant={walletSummary.weeklyProgressPercent >= 100 ? 'success' : 'secondary'}>
+                    {walletSummary.weeklyProgressPercent}%
+                  </Badge>
+                </div>
+                <div className="mt-4 h-2 overflow-hidden rounded-full bg-slate-100">
+                  <div
+                    className="h-full rounded-full bg-gradient-to-r from-blue-500 to-emerald-500 transition-all"
+                    style={{ width: `${walletSummary.weeklyProgressPercent}%` }}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <Gift className="h-4 w-4 text-emerald-600" />
+                Recent commission activity
+              </CardTitle>
+              <CardDescription>Your own sales commission events only.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {walletSummary.latestSales.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No commission activity yet. Your next sale will appear here.</p>
+              ) : (
+                <div className="space-y-3">
+                  {walletSummary.latestSales.map((event) => (
+                    <div key={event.id} className="flex items-center justify-between gap-4 border-b pb-3 last:border-0 last:pb-0">
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium">Product sold</p>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {event.product?.name ?? 'Archived product'} · Qty {event.quantity}
+                        </p>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <p className="text-sm font-semibold text-emerald-700">+{formatCurrency(event.rewardAmountMAD)}</p>
+                        <p className="text-xs text-muted-foreground">{formatDate(event.createdAt)}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
       )}
 
       {/* Stats cards */}
@@ -270,6 +385,44 @@ function RewardMetric({ label, value }: { label: string; value: string }) {
       <p className="text-xs font-medium text-muted-foreground">{label}</p>
       <p className="mt-1 text-lg font-semibold">{value}</p>
     </div>
+  )
+}
+
+function WalletMetric({ label, value, strong }: { label: string; value: string; strong?: boolean }) {
+  return (
+    <div>
+      <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
+      <p className={strong ? 'text-sm font-semibold text-emerald-700' : 'text-sm font-medium'}>{value}</p>
+    </div>
+  )
+}
+
+function EmployeeWalletCard({
+  label,
+  value,
+  description,
+  icon,
+  highlight,
+}: {
+  label: string
+  value: string
+  description: string
+  icon: React.ReactNode
+  highlight?: boolean
+}) {
+  return (
+    <Card className={highlight ? 'border-emerald-200 bg-gradient-to-br from-emerald-50 to-white' : ''}>
+      <CardContent className="pt-6">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="text-sm font-medium text-muted-foreground">{label}</p>
+            <p className="mt-1 text-2xl font-bold text-slate-950">{value}</p>
+            <p className="mt-1 text-xs text-muted-foreground">{description}</p>
+          </div>
+          <div className="rounded-lg bg-slate-50 p-2.5">{icon}</div>
+        </div>
+      </CardContent>
+    </Card>
   )
 }
 

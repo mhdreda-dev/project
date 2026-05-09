@@ -242,10 +242,14 @@ export class ReportsService {
     }))
   }
 
-  async getRecentStockMovements(scope: StoreScope, limit = 10) {
+  async getRecentStockMovements(scope: StoreScope, limit = 10, userId?: string) {
     return db.stockMovement.findMany({
       take: limit,
-      where: { storeId: scope.storeId, product: { isActive: true, deletedAt: null } },
+      where: {
+        storeId: scope.storeId,
+        ...(userId && { userId }),
+        product: { isActive: true, deletedAt: null },
+      },
       orderBy: { createdAt: 'desc' },
       include: {
         product: { select: { name: true, sku: true } },
