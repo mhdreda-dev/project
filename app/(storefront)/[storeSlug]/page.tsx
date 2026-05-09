@@ -44,19 +44,23 @@ export default async function StorefrontHomePage({ params }: Props) {
   const featured = products.slice(0, 8)
 
   return (
-    <div className="bg-[#080807]">
+    <div className="relative">
       {/* ── Editorial hero (curated visuals — NOT bound to DB products) ── */}
       <HeroSlider storeSlug={store.slug} exploreAnchor="featured" />
 
       {/* ── Trust strip — dark editorial ─────────────────────────────────── */}
-      <section className="relative overflow-hidden bg-[#0a0a0a] text-white border-y border-white/5">
+      <section className="relative overflow-hidden text-white">
         <div
           aria-hidden="true"
-          className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-black/80 to-transparent"
+          className="absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-black/70 to-transparent"
         />
         <div
           aria-hidden="true"
-          className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-[#0a0a0a] to-transparent"
+          className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-black/25 to-transparent"
+        />
+        <div
+          aria-hidden="true"
+          className="absolute left-1/2 top-10 h-80 w-80 -translate-x-1/2 rounded-full bg-amber-300/[0.045] blur-3xl"
         />
         <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-14 sm:py-20 lg:py-24 grid grid-cols-1 sm:grid-cols-3 gap-10 sm:gap-0">
           <Reveal delay={0} className="sm:pr-8">
@@ -96,18 +100,18 @@ export default async function StorefrontHomePage({ params }: Props) {
 
       {/* ── Categories ───────────────────────────────────────────────────── */}
       {categories.length > 0 && (
-        <section className="relative overflow-hidden bg-[#11100e] text-white py-20 sm:py-28">
+        <section className="relative overflow-hidden text-white py-20 sm:py-28">
           <div
             aria-hidden="true"
-            className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-[#f4f0e8] to-transparent"
+            className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-black/20 to-transparent"
           />
           <div
             aria-hidden="true"
-            className="absolute -left-32 top-24 h-80 w-80 rounded-full bg-amber-400/[0.08] blur-3xl"
+            className="absolute -left-32 top-24 h-80 w-80 rounded-full bg-amber-400/[0.055] blur-3xl"
           />
           <div
             aria-hidden="true"
-            className="absolute right-0 bottom-0 h-96 w-96 rounded-full bg-emerald-400/[0.06] blur-3xl"
+            className="absolute right-0 bottom-0 h-96 w-96 rounded-full bg-emerald-400/[0.04] blur-3xl"
           />
           <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <Reveal>
@@ -150,13 +154,13 @@ export default async function StorefrontHomePage({ params }: Props) {
 
       {/* ── WhatsApp CTA strip — editorial concierge card ───────────────── */}
       {whatsAppUrl && (
-        <section className="relative bg-[#11100e] px-4 sm:px-6 lg:px-8 pb-20 sm:pb-28">
+        <section className="relative px-4 sm:px-6 lg:px-8 pb-20 sm:pb-28">
           <div
             aria-hidden="true"
-            className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-[#11100e] to-transparent"
+            className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-black/20 to-transparent"
           />
           <Reveal variant="scale">
-            <div className="relative mx-auto max-w-7xl overflow-hidden rounded-3xl border border-white/10 bg-[#080807] px-6 py-14 text-white shadow-2xl shadow-black/40 sm:px-12 sm:py-24">
+            <div className="relative mx-auto max-w-7xl overflow-hidden rounded-3xl border border-white/10 bg-white/[0.035] px-6 py-14 text-white shadow-2xl shadow-black/35 backdrop-blur-md sm:px-12 sm:py-24">
               <div
                 aria-hidden="true"
                 className="absolute inset-0 opacity-[0.06]"
@@ -206,15 +210,15 @@ export default async function StorefrontHomePage({ params }: Props) {
 
       {/* ── Empty state (only when zero products) ────────────────────────── */}
       {products.length === 0 && (
-        <section className="bg-[#f4f0e8] px-4 sm:px-6 lg:px-8 py-24 text-center">
+        <section className="px-4 sm:px-6 lg:px-8 py-24 text-center">
           <div className="mx-auto max-w-7xl">
-            <div className="mx-auto h-16 w-16 rounded-full bg-white/70 grid place-items-center mb-4 ring-1 ring-stone-950/10">
-              <EmptyBoxIcon className="h-7 w-7 text-stone-400" />
+            <div className="mx-auto h-16 w-16 rounded-full bg-white/[0.06] grid place-items-center mb-4 ring-1 ring-white/10">
+              <EmptyBoxIcon className="h-7 w-7 text-white/40" />
             </div>
-            <p className="font-serif text-2xl text-stone-950">
+            <p className="font-serif text-2xl text-white">
               New collection coming soon
             </p>
-            <p className="text-sm text-stone-500 mt-1">
+            <p className="text-sm text-white/50 mt-1">
               Check back shortly — we&apos;re restocking.
             </p>
           </div>

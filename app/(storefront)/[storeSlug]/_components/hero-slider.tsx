@@ -157,7 +157,7 @@ export function HeroSlider({
             />
             {/* Cinematic gradient overlays (legibility + mood) */}
             <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/40 to-black/10" />
-            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#080807] via-black/40 to-transparent" />
           </motion.div>
         </AnimatePresence>
 
@@ -285,6 +285,11 @@ export function HeroSlider({
             transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
           />
         </a>
+
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-40 bg-gradient-to-t from-[#080807] via-[#080807]/70 to-transparent"
+        />
       </div>
     </section>
   )

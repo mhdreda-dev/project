@@ -26,23 +26,21 @@ export function LookbookSection({ products, storeSlug }: Props) {
   if (items.length === 0) return null
 
   return (
-    <section className="relative overflow-hidden bg-[#080807] text-white py-20 sm:py-24 lg:py-28">
-      {/* Layered backdrop: quiet gradients, glows, and an editorial dot field */}
+    <section className="relative overflow-hidden text-white py-20 sm:py-24 lg:py-28">
+      {/* Local atmosphere only; the storefront layout owns the page background. */}
       <div aria-hidden="true" className="absolute inset-0 pointer-events-none">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_-10%,rgba(251,191,36,0.14),transparent_34%),linear-gradient(180deg,#080807_0%,#15120f_46%,#080807_100%)]" />
-        <div className="absolute -top-48 left-1/2 h-[44rem] w-[44rem] -translate-x-1/2 rounded-full bg-amber-500/[0.08] blur-3xl" />
-        <div className="absolute bottom-0 -right-32 h-[34rem] w-[34rem] rounded-full bg-emerald-400/[0.06] blur-3xl" />
-        <div className="absolute top-1/3 -left-40 h-[28rem] w-[28rem] rounded-full bg-rose-300/[0.05] blur-3xl" />
+        <div className="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-black/35 to-transparent" />
+        <div className="absolute -top-48 left-1/2 h-[44rem] w-[44rem] -translate-x-1/2 rounded-full bg-amber-500/[0.07] blur-3xl" />
+        <div className="absolute bottom-0 -right-32 h-[34rem] w-[34rem] rounded-full bg-emerald-400/[0.045] blur-3xl" />
+        <div className="absolute top-1/3 -left-40 h-[28rem] w-[28rem] rounded-full bg-rose-300/[0.035] blur-3xl" />
         <div
-          className="absolute inset-0 opacity-[0.07] [mask-image:linear-gradient(90deg,transparent,black_16%,black_84%,transparent)]"
+          className="absolute inset-0 opacity-[0.045] [mask-image:linear-gradient(90deg,transparent,black_16%,black_84%,transparent)]"
           style={{
             backgroundImage:
               'radial-gradient(circle at 1px 1px, rgb(255 255 255 / 0.7) 1px, transparent 0)',
             backgroundSize: '28px 28px',
           }}
         />
-        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/15 to-transparent" />
-        <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
       </div>
 
       <div className="relative mx-auto max-w-7xl">
