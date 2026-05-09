@@ -4,6 +4,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { getPublicStore, getPublicProduct } from '@/lib/storefront/storefront.service'
 import { buildProductWhatsAppUrl } from '@/lib/storefront/whatsapp'
+import { CodOrderPanel } from '../../_components/cod-order-panel'
 import { Reveal } from '../../_components/reveal'
 import {
   ArrowLeftIcon,
@@ -43,8 +44,6 @@ export default async function ProductDetailPage({ params }: Props) {
   if (!product) notFound()
 
   const inStock = product.totalStock > 0
-  const availableSizes = product.sizes.filter((s) => s.quantity > 0)
-  const outOfStockSizes = product.sizes.filter((s) => s.quantity === 0)
   const whatsAppUrl = buildProductWhatsAppUrl(store, product)
   const formattedPrice = product.price.toLocaleString('fr-MA', {
     style: 'currency',
@@ -171,39 +170,20 @@ export default async function ProductDetailPage({ params }: Props) {
               </span>
             </div>
 
-            {/* Sizes */}
-            {product.sizes.length > 0 && (
-              <Reveal delay={50}>
-                <div className="mb-8">
-                  <div className="flex items-center justify-between mb-3">
-                    <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-white/70">Available sizes</p>
-                    <p className="text-xs text-white/40">
-                      {availableSizes.length} of {product.sizes.length} in stock
-                    </p>
-                  </div>
-                  <div className="grid grid-cols-5 sm:grid-cols-6 gap-2">
-                    {availableSizes.map((s) => (
-                      <div
-                        key={s.size}
-                        className="aspect-square rounded-xl border border-amber-100/30 bg-amber-100 text-stone-950 grid place-items-center text-sm font-semibold hover:bg-white hover:-translate-y-0.5 hover:shadow-md transition-all cursor-default select-none"
-                        title={`${s.quantity} in stock`}
-                      >
-                        {s.size}
-                      </div>
-                    ))}
-                    {outOfStockSizes.map((s) => (
-                      <div
-                        key={s.size}
-                        className="aspect-square rounded-xl border border-white/10 bg-white/[0.035] grid place-items-center text-sm font-medium text-white/25 line-through cursor-not-allowed select-none"
-                        title="Out of stock"
-                      >
-                        {s.size}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </Reveal>
-            )}
+            <Reveal delay={50}>
+              <CodOrderPanel
+                product={{
+                  id: product.id,
+                  name: product.name,
+                  imageUrl: product.imageUrl,
+                  price: product.price,
+                  totalStock: product.totalStock,
+                  sizes: product.sizes,
+                }}
+                storeSlug={store.slug}
+                whatsAppUrl={whatsAppUrl}
+              />
+            </Reveal>
 
             {/* Desktop WhatsApp CTA */}
             {whatsAppUrl && (
