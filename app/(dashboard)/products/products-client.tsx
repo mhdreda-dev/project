@@ -127,6 +127,11 @@ function normalizeCategoryValue(category: string | null | undefined) {
   return CATEGORY_ALIASES[normalized] ?? 'other'
 }
 
+function hasSize(sizes: { size: string }[], label: string) {
+  const normalized = label.trim().toLowerCase()
+  return sizes.some((size) => size.size.trim().toLowerCase() === normalized)
+}
+
 const DEFAULT_FORM = {
   name: '',
   sku: '',
@@ -296,8 +301,9 @@ export function ProductsClient({ initialProducts, meta: initialMeta, brands, isA
 
   function toggleSize(sizeLabel: string) {
     setSelected((prev) => {
-      const existing = prev.find((s) => s.size === sizeLabel)
-      if (existing) return prev.filter((s) => s.size !== sizeLabel)
+      const normalized = sizeLabel.trim().toLowerCase()
+      const existing = prev.find((s) => s.size.trim().toLowerCase() === normalized)
+      if (existing) return prev.filter((s) => s.size.trim().toLowerCase() !== normalized)
       return [...prev, { size: sizeLabel, quantity: 0 }]
     })
   }
@@ -309,7 +315,8 @@ export function ProductsClient({ initialProducts, meta: initialMeta, brands, isA
   function addCustomSize() {
     const label = customSize.trim()
     if (!label) return
-    if (selected.some((s) => s.size === label)) {
+    if (hasSize(selected, label)) {
+      toast({ title: 'Size already selected', variant: 'destructive' })
       setCustomSize('')
       return
     }
@@ -337,11 +344,12 @@ export function ProductsClient({ initialProducts, meta: initialMeta, brands, isA
     setVariants((prev) =>
       prev.map((variant) => {
         if (variant.clientId !== clientId) return variant
-        const existing = variant.sizes.find((size) => size.size === sizeLabel)
+        const normalized = sizeLabel.trim().toLowerCase()
+        const existing = variant.sizes.find((size) => size.size.trim().toLowerCase() === normalized)
         return {
           ...variant,
           sizes: existing
-            ? variant.sizes.filter((size) => size.size !== sizeLabel)
+            ? variant.sizes.filter((size) => size.size.trim().toLowerCase() !== normalized)
             : [...variant.sizes, { size: sizeLabel, quantity: 0 }],
         }
       }),
@@ -368,7 +376,9 @@ export function ProductsClient({ initialProducts, meta: initialMeta, brands, isA
       prev.map((variant) => {
         if (variant.clientId !== clientId) return variant
         const label = variant.customSize.trim()
-        if (!label || variant.sizes.some((size) => size.size === label)) {
+        if (!label) return variant
+        if (hasSize(variant.sizes, label)) {
+          toast({ title: 'Size already selected for this color', variant: 'destructive' })
           return { ...variant, customSize: '' }
         }
         return {
@@ -703,24 +713,29 @@ export function ProductsClient({ initialProducts, meta: initialMeta, brands, isA
 
       {/* Create / Edit Modal */}
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <DialogContent className="flex max-h-[calc(100vh-2rem)] w-[calc(100vw-2rem)] max-w-5xl flex-col gap-0 overflow-hidden rounded-2xl border-slate-200 p-0 shadow-2xl sm:max-w-5xl">
-          <DialogHeader className="border-b border-slate-100 px-5 py-4 pr-12 sm:px-6">
+        <DialogContent className="flex max-h-[calc(100vh-2rem)] w-[calc(100vw-1.5rem)] max-w-6xl flex-col gap-0 overflow-hidden rounded-2xl border-slate-200 bg-white p-0 shadow-2xl sm:w-[calc(100vw-2rem)]">
+          <DialogHeader className="shrink-0 border-b border-slate-100 px-5 py-4 pr-12 sm:px-6">
             <DialogTitle>{editing ? t('products.dialog.editTitle') : t('products.dialog.newTitle')}</DialogTitle>
+            <p className="text-sm text-slate-500">
+              Complete the product details, stock, and optional color variants.
+            </p>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
-            <div className="min-h-0 flex-1 overflow-y-auto bg-slate-50/60 px-5 py-5 sm:px-6">
-              <div className="space-y-4">
+            <div className="min-h-0 flex-1 overflow-y-auto bg-slate-50/60 px-4 py-4 sm:px-6 sm:py-5">
+              <div className="space-y-5">
                 <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
                   <div className="mb-4">
                     <h3 className="text-sm font-semibold text-slate-950">Product information</h3>
                     <p className="mt-1 text-xs leading-5 text-slate-500">Add the image, identity, category, and customer-facing description.</p>
                   </div>
                   <div className="grid grid-cols-1 gap-5 lg:grid-cols-[320px_minmax(0,1fr)] lg:items-start">
-                    <ImageUpload
-                      value={form.imageUrl}
-                      onChange={(url) => setForm((f) => ({ ...f, imageUrl: url ?? '' }))}
-                      className="lg:sticky lg:top-0 [&_.h-48]:h-64"
-                    />
+                    <div className="rounded-2xl border border-slate-100 bg-slate-50/60 p-3">
+                      <ImageUpload
+                        value={form.imageUrl}
+                        onChange={(url) => setForm((f) => ({ ...f, imageUrl: url ?? '' }))}
+                        className="[&_.h-48]:h-56 sm:[&_.h-48]:h-64"
+                      />
+                    </div>
 
                   {/* Basic info */}
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -872,7 +887,7 @@ export function ProductsClient({ initialProducts, meta: initialMeta, brands, isA
               {presetSizes.length > 0 && (
                 <div className="flex flex-wrap gap-1.5 mb-3">
                   {presetSizes.map((size) => {
-                    const isSelected = selected.some((s) => s.size === size)
+                    const isSelected = hasSize(selected, size)
                     return (
                       <button
                         key={size}
@@ -892,9 +907,8 @@ export function ProductsClient({ initialProducts, meta: initialMeta, brands, isA
                 </div>
               )}
 
-              {/* Custom size input (always visible for "Other") */}
-              {preset === 'other' && (
-                <div className="flex gap-2 mb-3">
+              {/* Custom size input */}
+                <div className="mb-3 grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
                   <Input
                     value={customSize}
                     onChange={(e) => setCustomSize(e.target.value)}
@@ -911,7 +925,6 @@ export function ProductsClient({ initialProducts, meta: initialMeta, brands, isA
                     {t('common.actions.add')}
                   </Button>
                 </div>
-              )}
 
               {/* Selected sizes with quantity */}
               {selected.length === 0 ? (
@@ -920,13 +933,13 @@ export function ProductsClient({ initialProducts, meta: initialMeta, brands, isA
                 </p>
               ) : (
                 <div className="space-y-1.5 max-h-52 overflow-y-auto rounded-xl border border-slate-100 bg-white p-2 pr-1">
-                  <div className="grid grid-cols-[1fr_100px_32px] gap-2 text-[10px] font-medium text-slate-400 uppercase tracking-wide px-1">
+                  <div className="grid grid-cols-[minmax(0,1fr)_92px_36px] gap-2 text-[10px] font-medium text-slate-400 uppercase tracking-wide px-1 sm:grid-cols-[minmax(0,1fr)_110px_36px]">
                     <span>{t('common.labels.size')}</span>
                     <span>{t('common.labels.quantity')}</span>
                     <span />
                   </div>
                   {selected.map((s) => (
-                    <div key={s.size} className="grid grid-cols-[1fr_100px_32px] gap-2 items-center">
+                    <div key={s.size} className="grid grid-cols-[minmax(0,1fr)_92px_36px] gap-2 items-center sm:grid-cols-[minmax(0,1fr)_110px_36px]">
                       <div className="h-9 rounded-lg bg-slate-50 border border-slate-200 px-3 flex items-center text-sm font-medium text-slate-700">
                         {s.size}
                       </div>
@@ -1100,7 +1113,7 @@ export function ProductsClient({ initialProducts, meta: initialMeta, brands, isA
                                   </div>
                                   <div className="mb-3 flex flex-wrap gap-1.5">
                                     {[...SIZE_PRESETS.clothing.sizes, ...SIZE_PRESETS.shoes.sizes].map((size) => {
-                                      const isSelected = variant.sizes.some((item) => item.size === size)
+                                      const isSelected = hasSize(variant.sizes, size)
                                       return (
                                         <button
                                           key={size}
@@ -1190,11 +1203,11 @@ export function ProductsClient({ initialProducts, meta: initialMeta, brands, isA
               </div>
             </div>
 
-            <div className="flex shrink-0 flex-col-reverse gap-3 border-t border-slate-100 bg-white px-5 py-4 sm:flex-row sm:px-6">
-              <Button type="button" variant="outline" className="flex-1 rounded-xl" onClick={() => setModalOpen(false)}>
+            <div className="flex shrink-0 flex-col-reverse gap-3 border-t border-slate-100 bg-white px-4 py-4 sm:flex-row sm:justify-end sm:px-6">
+              <Button type="button" variant="outline" className="rounded-xl sm:min-w-32" onClick={() => setModalOpen(false)}>
                 {t('common.actions.cancel')}
               </Button>
-              <Button type="submit" disabled={saving} className="flex-1 rounded-xl">
+              <Button type="submit" disabled={saving} className="rounded-xl sm:min-w-40">
                 {saving && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
                 {editing ? t('common.actions.saveChanges') : t('common.actions.createProduct')}
               </Button>
