@@ -102,7 +102,7 @@ export function LookbookSection({ products, storeSlug }: Props) {
                         alt={p.name}
                         fill
                         sizes="(max-width: 640px) 90vw, (max-width: 1024px) 480px, 560px"
-                        className="object-cover transition-transform duration-[1200ms] ease-out group-hover:scale-[1.04]"
+                        className="object-cover transition-transform [transition-duration:1200ms] ease-out group-hover:scale-[1.04]"
                       />
 
                       {/* Bottom shade for legibility */}

@@ -44,32 +44,43 @@ export default async function StorefrontHomePage({ params }: Props) {
   const featured = products.slice(0, 8)
 
   return (
-    <div>
+    <div className="bg-[#080807]">
       {/* ── Editorial hero (curated visuals — NOT bound to DB products) ── */}
       <HeroSlider storeSlug={store.slug} exploreAnchor="featured" />
 
-      {/* ── Trust badges ─────────────────────────────────────────────────── */}
-      <section className="border-y border-slate-200/80 bg-white">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 grid grid-cols-1 sm:grid-cols-3 sm:divide-x divide-slate-100">
-          <Reveal delay={0}>
+      {/* ── Trust strip — dark editorial ─────────────────────────────────── */}
+      <section className="relative overflow-hidden bg-[#0a0a0a] text-white border-y border-white/5">
+        <div
+          aria-hidden="true"
+          className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-black/80 to-transparent"
+        />
+        <div
+          aria-hidden="true"
+          className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-[#0a0a0a] to-transparent"
+        />
+        <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-14 sm:py-20 lg:py-24 grid grid-cols-1 sm:grid-cols-3 gap-10 sm:gap-0">
+          <Reveal delay={0} className="sm:pr-8">
             <TrustBadge
+              num="01"
               icon={<WhatsAppIcon className="h-5 w-5 text-[#25D366]" />}
-              title="WhatsApp orders"
-              description="One tap. No checkout, no account."
+              title="WhatsApp Concierge"
+              description="One tap. No checkout, no account. Real humans on the other end."
             />
           </Reveal>
-          <Reveal delay={120}>
+          <Reveal delay={120} className="sm:border-l sm:border-white/10 sm:px-8">
             <TrustBadge
-              icon={<BoltIcon className="h-5 w-5 text-amber-500" />}
-              title="Fast response"
-              description="We reply within minutes during business hours."
+              num="02"
+              icon={<BoltIcon className="h-5 w-5 text-amber-300" />}
+              title="Express Reply"
+              description="Average response within minutes during business hours."
             />
           </Reveal>
-          <Reveal delay={240}>
+          <Reveal delay={240} className="sm:border-l sm:border-white/10 sm:pl-8">
             <TrustBadge
-              icon={<CheckBadgeIcon className="h-5 w-5 text-emerald-500" />}
-              title="Live stock"
-              description="Real-time inventory — no surprises after you order."
+              num="03"
+              icon={<CheckBadgeIcon className="h-5 w-5 text-emerald-300" />}
+              title="Live Inventory"
+              description="Real-time stock signed at the atelier — no surprises after you order."
             />
           </Reveal>
         </div>
@@ -85,61 +96,95 @@ export default async function StorefrontHomePage({ params }: Props) {
 
       {/* ── Categories ───────────────────────────────────────────────────── */}
       {categories.length > 0 && (
-        <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-16 sm:py-24">
-          <Reveal>
-            <div className="mb-8 sm:mb-12">
-              <p className="text-xs uppercase tracking-widest text-slate-400 font-semibold mb-2">
-                Browse
-              </p>
-              <h2 className="text-2xl sm:text-4xl font-bold tracking-tight text-slate-900">
-                Shop by category
-              </h2>
+        <section className="relative overflow-hidden bg-[#11100e] text-white py-20 sm:py-28">
+          <div
+            aria-hidden="true"
+            className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-[#f4f0e8] to-transparent"
+          />
+          <div
+            aria-hidden="true"
+            className="absolute -left-32 top-24 h-80 w-80 rounded-full bg-amber-400/[0.08] blur-3xl"
+          />
+          <div
+            aria-hidden="true"
+            className="absolute right-0 bottom-0 h-96 w-96 rounded-full bg-emerald-400/[0.06] blur-3xl"
+          />
+          <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <Reveal>
+              <div className="mb-10 sm:mb-14 max-w-3xl">
+                <p className="font-mono text-[10px] sm:text-[11px] tracking-[0.28em] uppercase text-amber-200/70 font-semibold mb-5 flex items-center gap-3">
+                  <span aria-hidden="true" className="w-6 h-px bg-amber-300/60" />
+                  <span>04 / Universe</span>
+                </p>
+                <h2 className="font-serif text-3xl sm:text-5xl lg:text-6xl leading-[1.05] text-white text-balance">
+                  Shop by{' '}
+                  <em className="italic font-light text-amber-200/95">category</em>.
+                </h2>
+              </div>
+            </Reveal>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {categories.map((cat, idx) => (
+                <Reveal key={cat} delay={idx * 50} variant="scale">
+                  <Link
+                    href={`/${store.slug}/products?category=${encodeURIComponent(cat)}`}
+                    className="group flex min-h-20 items-center justify-between gap-4 rounded-2xl border border-white/10 bg-white/[0.04] px-5 py-4 text-white backdrop-blur hover:border-amber-200/45 hover:bg-white/[0.08] transition-all"
+                  >
+                    <span className="min-w-0">
+                      <span className="block font-mono text-[10px] tracking-[0.28em] uppercase text-white/40">
+                        {String(idx + 1).padStart(2, '0')}
+                      </span>
+                      <span className="mt-1 block truncate font-mono text-[11px] sm:text-xs tracking-[0.22em] uppercase text-white/85">
+                        {cat}
+                      </span>
+                    </span>
+                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-white/15 bg-black/20 text-white/70 group-hover:border-amber-200/60 group-hover:text-amber-100 transition-all">
+                      <ArrowRightIcon className="h-3.5 w-3.5 group-hover:translate-x-0.5 transition-transform" />
+                    </span>
+                  </Link>
+                </Reveal>
+              ))}
             </div>
-          </Reveal>
-          <div className="flex flex-wrap gap-3">
-            {categories.map((cat, idx) => (
-              <Reveal key={cat} delay={idx * 50} variant="scale">
-                <Link
-                  href={`/${store.slug}/products?category=${encodeURIComponent(cat)}`}
-                  className="group inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white hover:border-slate-900 hover:bg-slate-900 hover:text-white hover:-translate-y-0.5 px-5 py-3 text-sm font-medium text-slate-700 shadow-sm hover:shadow-lg transition-all"
-                >
-                  {cat}
-                  <ArrowRightIcon className="h-3.5 w-3.5 -translate-x-1 opacity-0 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
-                </Link>
-              </Reveal>
-            ))}
           </div>
         </section>
       )}
 
-      {/* ── WhatsApp CTA strip ───────────────────────────────────────────── */}
+      {/* ── WhatsApp CTA strip — editorial concierge card ───────────────── */}
       {whatsAppUrl && (
-        <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pb-20">
+        <section className="relative bg-[#11100e] px-4 sm:px-6 lg:px-8 pb-20 sm:pb-28">
+          <div
+            aria-hidden="true"
+            className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-[#11100e] to-transparent"
+          />
           <Reveal variant="scale">
-            <div className="rounded-3xl bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800 text-white px-6 sm:px-12 py-12 sm:py-20 relative overflow-hidden">
+            <div className="relative mx-auto max-w-7xl overflow-hidden rounded-3xl border border-white/10 bg-[#080807] px-6 py-14 text-white shadow-2xl shadow-black/40 sm:px-12 sm:py-24">
               <div
                 aria-hidden="true"
-                className="absolute inset-0 opacity-[0.07]"
+                className="absolute inset-0 opacity-[0.06]"
                 style={{
                   backgroundImage:
                     'radial-gradient(circle at 1px 1px, white 1px, transparent 0)',
-                  backgroundSize: '20px 20px',
+                  backgroundSize: '24px 24px',
                 }}
               />
               <div
                 aria-hidden="true"
-                className="absolute -right-32 -top-32 h-80 w-80 rounded-full bg-amber-400/30 blur-3xl motion-safe:animate-sf-orb-1"
+                className="absolute -right-32 -top-32 h-80 w-80 rounded-full bg-amber-400/[0.12] blur-3xl motion-safe:animate-sf-orb-1"
               />
               <div
                 aria-hidden="true"
-                className="absolute -left-20 -bottom-20 h-72 w-72 rounded-full bg-emerald-400/20 blur-3xl motion-safe:animate-sf-orb-2"
+                className="absolute -left-20 -bottom-20 h-72 w-72 rounded-full bg-emerald-400/[0.08] blur-3xl motion-safe:animate-sf-orb-2"
               />
 
               <div className="relative max-w-2xl">
-                <h3 className="text-3xl sm:text-5xl font-bold tracking-tight mb-4 leading-tight">
-                  Have a question?
+                <p className="font-mono text-[10px] sm:text-[11px] tracking-[0.28em] uppercase text-amber-200/70 font-semibold mb-5 flex items-center gap-3">
+                  <span aria-hidden="true" className="w-6 h-px bg-amber-300/60" />
+                  <span>05 / Concierge</span>
+                </p>
+                <h3 className="font-serif text-3xl sm:text-5xl lg:text-6xl leading-[1.05] mb-5 text-balance">
+                  Have a{' '}
+                  <em className="italic font-light text-amber-200/95">question?</em>
                 </h3>
-                <p className="text-slate-300 text-base sm:text-lg leading-relaxed mb-8 max-w-lg">
+                <p className="text-white/65 text-base sm:text-lg leading-relaxed mb-10 max-w-lg">
                   Need a different size? Want to know if we have something specific?
                   We&apos;re a message away.
                 </p>
@@ -147,10 +192,10 @@ export default async function StorefrontHomePage({ params }: Props) {
                   href={whatsAppUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="group inline-flex items-center gap-2 rounded-full bg-[#25D366] hover:bg-[#1ebe57] text-white px-7 py-4 text-sm font-semibold shadow-lg shadow-emerald-500/30 hover:shadow-xl hover:shadow-emerald-500/40 hover:-translate-y-0.5 transition-all"
+                  className="group inline-flex items-center gap-2 rounded-full border border-[#25D366]/50 bg-[#25D366] px-7 py-4 font-mono text-[11px] tracking-[0.18em] uppercase text-white shadow-lg shadow-emerald-500/20 hover:bg-[#1ebe57] hover:shadow-xl hover:shadow-emerald-500/30 hover:-translate-y-0.5 transition-all"
                 >
                   <WhatsAppIcon className="h-4 w-4" />
-                  Message us on WhatsApp
+                  WhatsApp Concierge
                   <ArrowRightIcon className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
                 </a>
               </div>
@@ -161,16 +206,18 @@ export default async function StorefrontHomePage({ params }: Props) {
 
       {/* ── Empty state (only when zero products) ────────────────────────── */}
       {products.length === 0 && (
-        <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-24 text-center">
-          <div className="mx-auto h-16 w-16 rounded-full bg-stone-100 grid place-items-center mb-4">
-            <EmptyBoxIcon className="h-7 w-7 text-slate-400" />
+        <section className="bg-[#f4f0e8] px-4 sm:px-6 lg:px-8 py-24 text-center">
+          <div className="mx-auto max-w-7xl">
+            <div className="mx-auto h-16 w-16 rounded-full bg-white/70 grid place-items-center mb-4 ring-1 ring-stone-950/10">
+              <EmptyBoxIcon className="h-7 w-7 text-stone-400" />
+            </div>
+            <p className="font-serif text-2xl text-stone-950">
+              New collection coming soon
+            </p>
+            <p className="text-sm text-stone-500 mt-1">
+              Check back shortly — we&apos;re restocking.
+            </p>
           </div>
-          <p className="text-base font-semibold text-slate-900">
-            New collection coming soon
-          </p>
-          <p className="text-sm text-slate-500 mt-1">
-            Check back shortly — we&apos;re restocking.
-          </p>
         </section>
       )}
     </div>
@@ -180,23 +227,31 @@ export default async function StorefrontHomePage({ params }: Props) {
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function TrustBadge({
+  num,
   icon,
   title,
   description,
 }: {
+  num: string
   icon: React.ReactNode
   title: string
   description: string
 }) {
   return (
-    <div className="flex items-start gap-4 px-4 sm:px-8 py-8">
-      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-stone-100 ring-1 ring-slate-200/60">
-        {icon}
+    <div className="flex h-full flex-col gap-5">
+      <div className="flex items-center justify-between">
+        <span className="font-mono text-[10px] tracking-[0.28em] uppercase text-white/45 flex items-center gap-3">
+          <span aria-hidden="true" className="w-6 h-px bg-white/30" />
+          {num} / Promise
+        </span>
+        <div className="text-white/85">{icon}</div>
       </div>
-      <div>
-        <p className="text-sm font-semibold text-slate-900">{title}</p>
-        <p className="text-sm text-slate-500 mt-0.5 leading-relaxed">{description}</p>
-      </div>
+      <h3 className="font-serif text-2xl sm:text-3xl leading-tight text-white text-balance">
+        {title}
+      </h3>
+      <p className="text-sm sm:text-[15px] text-white/55 leading-relaxed max-w-sm">
+        {description}
+      </p>
     </div>
   )
 }
