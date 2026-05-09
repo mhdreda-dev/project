@@ -39,9 +39,23 @@ export default async function StorefrontLayout({ children, params }: Props) {
   const logoUrl = getStoreLogoUrl(store.slug)
 
   return (
-    <div className="min-h-screen flex flex-col bg-stone-50 text-slate-900 antialiased selection:bg-slate-900 selection:text-white">
+    <div className="relative min-h-screen flex flex-col overflow-x-hidden bg-[#080807] text-white antialiased selection:bg-amber-200 selection:text-stone-950">
+      <div aria-hidden="true" className="fixed inset-0 -z-10 pointer-events-none">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_-10%,rgba(251,191,36,0.12),transparent_32%),radial-gradient(circle_at_8%_30%,rgba(244,114,182,0.05),transparent_28%),radial-gradient(circle_at_90%_22%,rgba(16,185,129,0.05),transparent_26%),linear-gradient(180deg,#080807_0%,#11100e_42%,#080807_100%)]" />
+        <div
+          className="absolute inset-0 opacity-[0.055] [mask-image:linear-gradient(180deg,black,transparent_85%)]"
+          style={{
+            backgroundImage:
+              'radial-gradient(circle at 1px 1px, rgb(255 255 255 / 0.75) 1px, transparent 0)',
+            backgroundSize: '30px 30px',
+          }}
+        />
+        <div className="absolute inset-x-0 top-0 h-64 bg-gradient-to-b from-black/70 to-transparent" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_35%,rgba(0,0,0,0.42)_100%)]" />
+      </div>
+
       {/* Announcement bar — editorial mono ribbon */}
-      <div className="bg-[#0a0a0a] text-white/60 border-b border-white/5">
+      <div className="relative bg-[#0a0a0a]/95 text-white/60 border-b border-white/5">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 h-9 flex items-center justify-center gap-3 sm:gap-5 text-center font-mono text-[10px] sm:text-[11px] tracking-[0.28em] uppercase">
           <span className="hidden sm:inline">⚡ Fast WhatsApp response</span>
           <span className="hidden sm:inline text-white/25">·</span>
@@ -132,35 +146,48 @@ export default async function StorefrontLayout({ children, params }: Props) {
         </div>
       </ScrollHeader>
 
-      <main className="flex-1">{children}</main>
+      <main className="relative flex-1">{children}</main>
 
       {/* Footer */}
-      <footer className="border-t border-slate-200/80 bg-white mt-16 sm:mt-24">
+      <footer className="relative overflow-hidden border-t border-white/10 bg-[#080807]/95 mt-0">
+        <div aria-hidden="true" className="absolute inset-0 pointer-events-none">
+          <div className="absolute -top-40 left-1/2 h-96 w-96 -translate-x-1/2 rounded-full bg-amber-400/[0.07] blur-3xl" />
+          <div
+            className="absolute inset-0 opacity-[0.05]"
+            style={{
+              backgroundImage:
+                'radial-gradient(circle at 1px 1px, white 1px, transparent 0)',
+              backgroundSize: '28px 28px',
+            }}
+          />
+        </div>
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12 sm:py-14 grid gap-10 sm:grid-cols-2 lg:grid-cols-3">
-          <div>
+          <div className="relative">
             <div className="flex items-center gap-2.5 mb-3">
               <StorefrontLogo storeName={store.name} src={logoUrl} size="md" />
-              <p className="text-base font-semibold tracking-tight text-slate-900">{store.name}</p>
+              <p className="font-serif text-xl tracking-tight text-white">
+                {store.name}<span className="text-amber-200/90">.</span>
+              </p>
             </div>
-            <p className="text-sm text-slate-500 leading-relaxed max-w-xs">
+            <p className="text-sm text-white/50 leading-relaxed max-w-xs">
               Modern shopping experience powered by direct WhatsApp orders. No checkout, no friction.
             </p>
           </div>
 
-          <div>
-            <p className="text-xs uppercase tracking-widest text-slate-400 font-semibold mb-4">Shop</p>
+          <div className="relative">
+            <p className="font-mono text-[10px] uppercase tracking-[0.28em] text-amber-200/65 font-semibold mb-4">Shop</p>
             <ul className="space-y-2.5 text-sm">
-              <li><Link href={`/${store.slug}`} className="text-slate-600 hover:text-slate-900 transition-colors">Home</Link></li>
-              <li><Link href={`/${store.slug}/products`} className="text-slate-600 hover:text-slate-900 transition-colors">All products</Link></li>
+              <li><Link href={`/${store.slug}`} className="text-white/55 hover:text-white transition-colors">Home</Link></li>
+              <li><Link href={`/${store.slug}/products`} className="text-white/55 hover:text-white transition-colors">All products</Link></li>
             </ul>
           </div>
 
-          <div>
-            <p className="text-xs uppercase tracking-widest text-slate-400 font-semibold mb-4">Contact</p>
+          <div className="relative">
+            <p className="font-mono text-[10px] uppercase tracking-[0.28em] text-amber-200/65 font-semibold mb-4">Contact</p>
             <ul className="space-y-2.5 text-sm">
               {store.phone && (
                 <li>
-                  <a href={`tel:${store.phone}`} className="text-slate-600 hover:text-slate-900 transition-colors">
+                  <a href={`tel:${store.phone}`} className="text-white/55 hover:text-white transition-colors">
                     {store.phone}
                   </a>
                 </li>
@@ -171,20 +198,20 @@ export default async function StorefrontLayout({ children, params }: Props) {
                     href={whatsAppUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 text-slate-600 hover:text-slate-900 transition-colors"
+                    className="inline-flex items-center gap-1.5 text-white/55 hover:text-white transition-colors"
                   >
                     <WhatsAppIcon className="h-3.5 w-3.5 text-[#25D366]" />
                     WhatsApp
                   </a>
                 </li>
               )}
-              {store.address && <li className="text-slate-600">{store.address}</li>}
+              {store.address && <li className="text-white/55">{store.address}</li>}
             </ul>
           </div>
         </div>
 
-        <div className="border-t border-slate-200/80">
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-5 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-slate-400">
+        <div className="relative border-t border-white/10">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-5 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-white/35">
             <p>© {new Date().getFullYear()} {store.name}. All rights reserved.</p>
           </div>
         </div>

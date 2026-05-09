@@ -33,18 +33,25 @@ export default async function ProductsCatalogPage({ params, searchParams }: Prop
   const hasFilters = !!(category || search)
 
   return (
-    <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10 sm:py-14">
+    <div className="relative overflow-hidden py-10 sm:py-14 lg:py-16">
+      <div aria-hidden="true" className="absolute inset-0 pointer-events-none">
+        <div className="absolute left-1/2 top-0 h-[28rem] w-[42rem] -translate-x-1/2 rounded-full bg-amber-300/[0.07] blur-3xl" />
+        <div className="absolute -right-32 top-72 h-96 w-96 rounded-full bg-emerald-300/[0.05] blur-3xl" />
+        <div className="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-black/55 to-transparent" />
+      </div>
+
+      <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
       {/* Page header */}
       <div className="mb-10 sm:mb-12 motion-safe:animate-sf-fade-up">
-        <nav className="flex items-center gap-2 text-xs text-slate-400 mb-4" aria-label="Breadcrumb">
-          <Link href={`/${store.slug}`} className="hover:text-slate-700 transition-colors">{store.name}</Link>
-          <span>/</span>
-          <span className="text-slate-700 font-medium">{category ?? 'Products'}</span>
+        <nav className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.22em] text-white/35 mb-5" aria-label="Breadcrumb">
+          <Link href={`/${store.slug}`} className="hover:text-white/75 transition-colors">{store.name}</Link>
+          <span className="text-white/20">/</span>
+          <span className="text-amber-100/75">{category ?? 'Products'}</span>
         </nav>
-        <h1 className="text-3xl sm:text-5xl font-bold tracking-tight text-slate-900">
-          {category ?? 'All products'}
+        <h1 className="font-serif text-4xl sm:text-6xl lg:text-7xl leading-[1.02] text-white text-balance">
+          {category ?? 'All products'}<span className="text-amber-200/90">.</span>
         </h1>
-        <p className="mt-3 text-sm text-slate-500">
+        <p className="mt-4 max-w-xl text-sm sm:text-base text-white/55 leading-relaxed">
           {total === 0
             ? 'No products match your filters'
             : `${total} ${total === 1 ? 'product' : 'products'}${search ? ` matching "${search}"` : ''}`}
@@ -55,26 +62,26 @@ export default async function ProductsCatalogPage({ params, searchParams }: Prop
       <div className="mb-8 sm:mb-12 space-y-4 motion-safe:animate-sf-fade-up" style={{ animationDelay: '120ms' }}>
         <form method="GET" className="flex gap-2 sm:gap-3">
           <div className="relative flex-1">
-            <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
+            <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-white/35 pointer-events-none" />
             <input
               type="text"
               name="search"
               defaultValue={search ?? ''}
               placeholder="Search products…"
-              className="w-full rounded-full border border-slate-200 bg-white pl-11 pr-4 py-3 text-sm placeholder-slate-400 shadow-sm focus:outline-none focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 transition"
+              className="w-full rounded-full border border-white/10 bg-white/[0.06] pl-11 pr-4 py-3 text-sm text-white placeholder-white/35 shadow-2xl shadow-black/10 backdrop-blur-md focus:outline-none focus:border-amber-200/45 focus:ring-2 focus:ring-amber-200/10 transition"
             />
           </div>
           {category && <input type="hidden" name="category" value={category} />}
           <button
             type="submit"
-            className="rounded-full bg-slate-900 hover:bg-slate-800 text-white px-5 sm:px-6 py-3 text-sm font-semibold shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all"
+            className="rounded-full border border-amber-100/30 bg-amber-100 text-stone-950 px-5 sm:px-6 py-3 font-mono text-[11px] uppercase tracking-[0.18em] shadow-lg shadow-amber-900/10 hover:bg-white hover:-translate-y-0.5 transition-all"
           >
             Search
           </button>
           {hasFilters && (
             <a
               href={baseUrl}
-              className="hidden sm:inline-flex items-center rounded-full border border-slate-200 hover:border-slate-300 bg-white text-slate-600 px-5 py-3 text-sm font-medium shadow-sm transition"
+              className="hidden sm:inline-flex items-center rounded-full border border-white/10 bg-white/[0.04] px-5 py-3 font-mono text-[11px] uppercase tracking-[0.18em] text-white/60 backdrop-blur transition hover:border-white/25 hover:text-white"
             >
               Clear
             </a>
@@ -106,12 +113,12 @@ export default async function ProductsCatalogPage({ params, searchParams }: Prop
       {/* Grid */}
       {products.length === 0 ? (
         <Reveal variant="scale">
-          <div className="rounded-3xl bg-white border border-dashed border-slate-200 px-6 py-20 text-center">
-            <div className="mx-auto h-12 w-12 rounded-full bg-stone-100 grid place-items-center mb-4">
-              <SearchIcon className="h-5 w-5 text-slate-400" />
+          <div className="rounded-3xl border border-dashed border-white/15 bg-white/[0.04] px-6 py-20 text-center backdrop-blur-md">
+            <div className="mx-auto h-12 w-12 rounded-full bg-white/[0.08] grid place-items-center mb-4 ring-1 ring-white/10">
+              <SearchIcon className="h-5 w-5 text-white/45" />
             </div>
-            <p className="text-base font-semibold text-slate-900 mb-1">No products found</p>
-            <p className="text-sm text-slate-500 mb-6">
+            <p className="font-serif text-2xl text-white mb-1">No products found</p>
+            <p className="text-sm text-white/50 mb-6">
               {hasFilters
                 ? 'Try adjusting your filters or search terms.'
                 : 'Check back soon for new arrivals.'}
@@ -119,7 +126,7 @@ export default async function ProductsCatalogPage({ params, searchParams }: Prop
             {hasFilters && (
               <a
                 href={baseUrl}
-                className="inline-flex items-center rounded-full bg-slate-900 text-white px-5 py-2.5 text-sm font-semibold hover:bg-slate-800 hover:-translate-y-0.5 transition-all"
+                className="inline-flex items-center rounded-full bg-amber-100 text-stone-950 px-5 py-2.5 font-mono text-[11px] uppercase tracking-[0.18em] hover:bg-white hover:-translate-y-0.5 transition-all"
               >
                 Clear filters
               </a>
@@ -133,6 +140,7 @@ export default async function ProductsCatalogPage({ params, searchParams }: Prop
               <ProductCard
                 product={product}
                 href={`/${store.slug}/products/${product.id}`}
+                tone="dark"
               />
             </Reveal>
           ))}
@@ -164,6 +172,7 @@ export default async function ProductsCatalogPage({ params, searchParams }: Prop
           </nav>
         </Reveal>
       )}
+      </div>
     </div>
   )
 }
@@ -176,10 +185,10 @@ function CategoryPill({
   return (
     <a
       href={href}
-      className={`inline-flex items-center rounded-full px-4 py-1.5 text-sm font-medium whitespace-nowrap shrink-0 shadow-sm transition-all ${
+      className={`inline-flex items-center rounded-full px-4 py-2 font-mono text-[10px] uppercase tracking-[0.18em] whitespace-nowrap shrink-0 transition-all ${
         active
-          ? 'bg-slate-900 text-white scale-105'
-          : 'bg-white border border-slate-200 text-slate-600 hover:border-slate-900 hover:text-slate-900 hover:-translate-y-0.5'
+          ? 'bg-amber-100 text-stone-950 scale-105'
+          : 'bg-white/[0.04] border border-white/10 text-white/55 hover:border-white/30 hover:text-white hover:-translate-y-0.5'
       }`}
     >
       {children}
@@ -205,10 +214,10 @@ function PageLink({
     <a
       href={`${baseUrl}?${qp.toString()}`}
       aria-current={active ? 'page' : undefined}
-      className={`min-w-[2.5rem] h-10 px-3 rounded-full inline-flex items-center justify-center text-sm font-semibold shadow-sm transition-all ${
+      className={`min-w-[2.5rem] h-10 px-3 rounded-full inline-flex items-center justify-center font-mono text-[11px] uppercase tracking-[0.14em] transition-all ${
         active
-          ? 'bg-slate-900 text-white scale-105'
-          : 'bg-white border border-slate-200 text-slate-600 hover:border-slate-900 hover:text-slate-900 hover:-translate-y-0.5'
+          ? 'bg-amber-100 text-stone-950 scale-105'
+          : 'bg-white/[0.04] border border-white/10 text-white/55 hover:border-white/30 hover:text-white hover:-translate-y-0.5'
       }`}
     >
       {children}
