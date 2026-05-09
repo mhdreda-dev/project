@@ -26,7 +26,7 @@ export function LookbookSection({ products, storeSlug }: Props) {
   if (items.length === 0) return null
 
   return (
-    <section className="relative overflow-hidden text-white py-20 sm:py-24 lg:py-28">
+    <section id="lookbook" className="relative overflow-hidden text-white py-20 sm:py-24 lg:py-28 scroll-mt-28">
       {/* Local atmosphere only; the storefront layout owns the page background. */}
       <div aria-hidden="true" className="absolute inset-0 pointer-events-none">
         <div className="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-black/35 to-transparent" />

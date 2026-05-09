@@ -37,6 +37,16 @@ export default async function StorefrontLayout({ children, params }: Props) {
 
   const whatsAppUrl = buildStoreWhatsAppUrl(store)
   const logoUrl = getStoreLogoUrl(store.slug)
+  const navLinks = [
+    { label: 'Home', href: `/${store.slug}` },
+    { label: 'Shop', href: `/${store.slug}/products` },
+    { label: 'New Arrivals', href: `/${store.slug}/products` },
+    {
+      label: 'Sneakers',
+      href: `/${store.slug}/products?category=${encodeURIComponent('Shoes')}`,
+    },
+    { label: 'Lookbook', href: `/${store.slug}#lookbook` },
+  ]
 
   return (
     <div className="relative min-h-screen flex flex-col overflow-x-hidden bg-[#080807] text-white antialiased selection:bg-amber-200 selection:text-stone-950">
@@ -86,26 +96,22 @@ export default async function StorefrontLayout({ children, params }: Props) {
             </Link>
 
             <nav
-              className="hidden md:flex items-center gap-8 font-mono text-[11px] tracking-[0.22em] uppercase text-white/65"
+              className="hidden md:flex items-center gap-6 lg:gap-8 font-mono text-[11px] tracking-[0.22em] uppercase text-white/65"
               aria-label="Primary"
             >
-              <Link href={`/${store.slug}`} className="relative group hover:text-white transition-colors">
-                Home
-                <span
-                  aria-hidden="true"
-                  className="absolute -bottom-2 left-0 right-0 h-px bg-white origin-left scale-x-0 group-hover:scale-x-100 transition-transform duration-500"
-                />
-              </Link>
-              <Link
-                href={`/${store.slug}/products`}
-                className="relative group hover:text-white transition-colors"
-              >
-                Shop
-                <span
-                  aria-hidden="true"
-                  className="absolute -bottom-2 left-0 right-0 h-px bg-white origin-left scale-x-0 group-hover:scale-x-100 transition-transform duration-500"
-                />
-              </Link>
+              {navLinks.map((link) => (
+                <Link
+                  key={link.label}
+                  href={link.href}
+                  className="relative group hover:text-white transition-colors"
+                >
+                  {link.label}
+                  <span
+                    aria-hidden="true"
+                    className="absolute -bottom-2 left-0 right-0 h-px bg-white origin-left scale-x-0 group-hover:scale-x-100 transition-transform duration-500"
+                  />
+                </Link>
+              ))}
             </nav>
           </div>
 
@@ -133,15 +139,18 @@ export default async function StorefrontLayout({ children, params }: Props) {
         {/* Mobile sub-nav — same editorial mono treatment */}
         <div className="md:hidden border-t border-white/5">
           <div
-            className="mx-auto max-w-7xl px-4 sm:px-6 h-10 flex items-center gap-6 font-mono text-[10px] tracking-[0.22em] uppercase text-white/65"
+            className="mx-auto max-w-7xl px-4 sm:px-6 h-10 flex items-center gap-6 overflow-x-auto font-mono text-[10px] tracking-[0.22em] uppercase text-white/65 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
             aria-label="Primary mobile"
           >
-            <Link href={`/${store.slug}`} className="hover:text-white transition-colors">
-              Home
-            </Link>
-            <Link href={`/${store.slug}/products`} className="hover:text-white transition-colors">
-              Shop
-            </Link>
+            {navLinks.map((link) => (
+              <Link
+                key={link.label}
+                href={link.href}
+                className="shrink-0 hover:text-white transition-colors"
+              >
+                {link.label}
+              </Link>
+            ))}
           </div>
         </div>
       </ScrollHeader>

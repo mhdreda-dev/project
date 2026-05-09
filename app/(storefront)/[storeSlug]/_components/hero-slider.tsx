@@ -27,39 +27,38 @@ type Slide = {
 const SLIDES: Slide[] = [
   {
     id: 'obsidian-ss26',
-    eyebrow: 'Obsidian / SS26',
-    title: 'Form, in motion.',
-    accent: 'motion',
+    eyebrow: 'BENAMI EDIT',
+    title: 'Streetwear, selected with intent.',
+    accent: 'intent',
     subtitle:
-      'A study in craft, silhouette, and silence — released in measured waves.',
+      'Discover curated sneakers, essentials, and everyday pieces made to stand out.',
     image:
       'https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=2400&q=80',
   },
   {
     id: 'campaign-04',
-    eyebrow: 'Campaign 04',
-    title: 'Heritage, reissued.',
-    accent: 'reissued',
-    subtitle: 'Built for the long road. Detailed for the long memory.',
+    eyebrow: 'NEW ARRIVALS',
+    title: 'Fresh drops, ready to wear.',
+    accent: 'drops',
+    subtitle: 'Explore the latest pieces available now from the Benami collection.',
     image:
       'https://images.unsplash.com/photo-1606107557195-0e29a4b5b4aa?auto=format&fit=crop&w=2400&q=80',
   },
   {
     id: 'winter-edition',
-    eyebrow: 'Winter Edition',
-    title: 'Quiet, on purpose.',
-    accent: 'Quiet',
-    subtitle:
-      'Considered layers. Deliberate restraint. The rest is noise.',
+    eyebrow: 'SNEAKER ROTATION',
+    title: 'Built for the street.',
+    accent: 'street',
+    subtitle: 'From clean silhouettes to bold pairs, find your next rotation.',
     image:
       'https://images.unsplash.com/photo-1591047139829-d91aecb6caea?auto=format&fit=crop&w=2400&q=80',
   },
   {
     id: 'objects-02',
-    eyebrow: 'Objects 02',
-    title: 'Held to a higher proof.',
-    accent: 'higher',
-    subtitle: 'Hardware. Leather. Time. Made to outlast the trend cycle.',
+    eyebrow: 'LIMITED PIECES',
+    title: 'Choose the piece before it disappears.',
+    accent: 'disappears',
+    subtitle: 'Small quantities, selected styles, and fast WhatsApp ordering.',
     image:
       'https://images.unsplash.com/photo-1620799140408-edc6dcb6d633?auto=format&fit=crop&w=2400&q=80',
   },
