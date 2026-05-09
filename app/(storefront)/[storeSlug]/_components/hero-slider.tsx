@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { AnimatePresence, motion } from 'framer-motion'
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { ArrowLeftIcon, ArrowRightIcon } from './icons'
 
 /**
@@ -66,9 +66,11 @@ const SLIDES: Slide[] = [
 
 type Props = {
   storeSlug: string
+  storeName?: string
+  heroImageUrl?: string | null
   /** Optional: anchor id of the section the "Explore" button scrolls to. */
   exploreAnchor?: string
-  /** Pause between slides in ms. Default 7000. */
+  /** Pause between slides in ms. Default 5200. */
   intervalMs?: number
 }
 
@@ -88,28 +90,41 @@ function renderTitle(title: string, accent: string) {
 
 export function HeroSlider({
   storeSlug,
+  storeName,
+  heroImageUrl,
   exploreAnchor = 'featured',
-  intervalMs = 7000,
+  intervalMs = 5200,
 }: Props) {
-  const count = SLIDES.length
+  const shouldReduceMotion = useReducedMotion()
+  const slides = heroImageUrl
+    ? [
+        {
+          id: 'store-hero',
+          eyebrow: `${storeName ?? 'STORE'} EDIT`,
+          title: 'Curated pieces, ready now.',
+          accent: 'ready',
+          subtitle: 'Explore the latest selection and order directly in one message.',
+          image: heroImageUrl,
+        },
+        ...SLIDES,
+      ]
+    : SLIDES
+  const count = slides.length
   const [idx, setIdx] = useState(0)
   const [paused, setPaused] = useState(false)
 
-  // Auto-rotate; pause on hover/focus or when prefers-reduced-motion is set
+  // Auto-rotate; pause on hover/focus or when prefers-reduced-motion is set.
+  // A timeout resets after manual navigation, keeping the cadence calm and intentional.
   useEffect(() => {
-    if (count < 2 || paused) return
-    if (typeof window !== 'undefined') {
-      const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-      if (reduced) return
-    }
-    const t = window.setInterval(() => setIdx((i) => (i + 1) % count), intervalMs)
-    return () => window.clearInterval(t)
-  }, [count, paused, intervalMs])
+    if (count < 2 || paused || shouldReduceMotion) return
+    const t = window.setTimeout(() => setIdx((i) => (i + 1) % count), intervalMs)
+    return () => window.clearTimeout(t)
+  }, [count, idx, paused, intervalMs, shouldReduceMotion])
 
   const next = useCallback(() => setIdx((i) => (i + 1) % count), [count])
   const prev = useCallback(() => setIdx((i) => (i - 1 + count) % count), [count])
 
-  const slide = SLIDES[idx]
+  const slide = slides[idx]
 
   const onExplore = useCallback(
     (e: React.MouseEvent<HTMLAnchorElement>) => {
@@ -136,14 +151,14 @@ export function HeroSlider({
         <AnimatePresence>
           <motion.div
             key={slide.id}
-            initial={{ opacity: 0, scale: 1 }}
-            animate={{ opacity: 1, scale: 1.08 }}
-            exit={{ opacity: 0 }}
+            initial={shouldReduceMotion ? { opacity: 1 } : { opacity: 0, scale: 1.025 }}
+            animate={shouldReduceMotion ? { opacity: 1 } : { opacity: 1, scale: 1.095 }}
+            exit={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, scale: 1.11 }}
             transition={{
-              opacity: { duration: 1.4, ease: 'easeOut' },
-              scale: { duration: 12, ease: 'linear' },
+              opacity: { duration: 1.65, ease: [0.22, 1, 0.36, 1] },
+              scale: { duration: Math.max(6.8, intervalMs / 1000 + 2.4), ease: 'easeOut' },
             }}
-            className="absolute inset-0"
+            className="absolute inset-0 will-change-transform"
             aria-hidden="true"
           >
             <Image
@@ -190,11 +205,23 @@ export function HeroSlider({
           <AnimatePresence mode="wait">
             <motion.div
               key={`text-${slide.id}`}
-              initial={{ opacity: 0, y: 28 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -16 }}
-              transition={{ duration: 0.85, ease: [0.25, 0.4, 0.25, 1] }}
-              className="max-w-2xl"
+              initial={
+                shouldReduceMotion
+                  ? { opacity: 1 }
+                  : { opacity: 0, y: 24, filter: 'blur(10px)' }
+              }
+              animate={
+                shouldReduceMotion
+                  ? { opacity: 1 }
+                  : { opacity: 1, y: 0, filter: 'blur(0px)' }
+              }
+              exit={
+                shouldReduceMotion
+                  ? { opacity: 0 }
+                  : { opacity: 0, y: -10, filter: 'blur(6px)' }
+              }
+              transition={{ duration: 0.95, ease: [0.22, 1, 0.36, 1] }}
+              className="max-w-2xl will-change-transform"
             >
               <p className="font-mono text-[10px] sm:text-[11px] uppercase tracking-[0.3em] text-amber-200/80 font-semibold mb-5 sm:mb-7">
                 {slide.eyebrow}
@@ -254,7 +281,7 @@ export function HeroSlider({
         {/* ── Dot indicators ───────────────────────────────────────────── */}
         {count > 1 && (
           <div className="absolute bottom-7 left-4 sm:left-8 z-20 flex items-center gap-2">
-            {SLIDES.map((s, i) => (
+            {slides.map((s, i) => (
               <button
                 key={s.id}
                 type="button"

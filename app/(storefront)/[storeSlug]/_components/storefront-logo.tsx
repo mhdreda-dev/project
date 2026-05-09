@@ -30,11 +30,11 @@ const SIZE_TEXT: Record<Size, string> = {
  * StorefrontLogo — single source of truth for the per-store brand mark.
  *
  * Usage patterns:
- *   <StorefrontLogo storeName={store.name} src={getStoreLogoUrl(store.slug)} />        // mark
+ *   <StorefrontLogo storeName={store.name} src={store.logoUrl} />                      // mark
  *   <StorefrontLogo storeName={store.name} variant="inline" />                          // mark + name
  *   <StorefrontLogo storeName={store.name} variant="hero" size="xl" animate reveal />   // hero
  *
- * Replace the fallback by adding an entry to `lib/storefront/logos.ts`.
+ * Prefer editable store settings; `lib/storefront/logos.ts` remains a legacy fallback.
  */
 export function StorefrontLogo({
   storeName,

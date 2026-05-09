@@ -7,6 +7,7 @@ import type { StorefrontProduct } from './product-card'
 type Props = {
   products: StorefrontProduct[]
   storeSlug: string
+  storeName?: string
 }
 
 const formatPrice = (n: number) =>
@@ -21,7 +22,7 @@ const formatPrice = (n: number) =>
  * horizontal editorial scroll. Each card links to the product detail page.
  * Renders nothing if there are no products with images.
  */
-export function LookbookSection({ products, storeSlug }: Props) {
+export function LookbookSection({ products, storeSlug, storeName = 'Benami' }: Props) {
   const items = products.filter((p) => p.imageUrl).slice(0, 6)
   if (items.length === 0) return null
 
@@ -51,19 +52,19 @@ export function LookbookSection({ products, storeSlug }: Props) {
               <Reveal>
                 <p className="mb-5 flex items-center gap-3 font-mono text-[10px] sm:text-[11px] uppercase tracking-[0.3em] text-amber-200/70 font-semibold">
                   <span aria-hidden="true" className="h-px w-7 bg-amber-200/45" />
-                  THE LOOKBOOK
+                  CURATED LOOKBOOK
                 </p>
               </Reveal>
               <Reveal delay={120}>
                 <h2 className="font-serif text-4xl sm:text-5xl lg:text-6xl leading-[1.03] text-white text-balance">
-                  A cinematic{' '}
+                  The {storeName}{' '}
                   <em className="italic font-light text-amber-200/90">edit</em>
                 </h2>
               </Reveal>
               <Reveal delay={240}>
                 <p className="mt-5 max-w-2xl text-base sm:text-lg text-white/62 leading-relaxed">
-                  Hand-picked silhouettes, framed with intent. Tap any piece to order it
-                  straight from your store.
+                  A sharper selection of sneakers, essentials, and standout pieces,
+                  ready to order directly on WhatsApp.
                 </p>
               </Reveal>
             </div>
@@ -72,7 +73,7 @@ export function LookbookSection({ products, storeSlug }: Props) {
               <div className="hidden shrink-0 items-center gap-3 lg:flex">
                 <span className="h-px w-10 bg-white/20" />
                 <span className="font-mono text-[10px] uppercase tracking-[0.28em] text-white/40">
-                  Drag / Scroll
+                  Swipe / Scroll
                 </span>
               </div>
             </Reveal>

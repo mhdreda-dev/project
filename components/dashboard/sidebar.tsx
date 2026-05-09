@@ -17,6 +17,7 @@ import {
   BarChart3,
   Bot,
   Building2,
+  Settings,
   ChevronRight,
   Menu,
 } from 'lucide-react'
@@ -31,6 +32,7 @@ type NavItem = {
   labelKey: string
   icon: React.ComponentType<{ className?: string }>
   adminOnly?: boolean
+  adminOrSuperOnly?: boolean
   superAdminOnly?: boolean
 }
 
@@ -65,6 +67,7 @@ function NavContent({ onClose }: { onClose?: () => void }) {
       labelKey: 'shell.sidebar.administration',
       items: [
         { href: '/stores', labelKey: 'Stores', icon: Building2, superAdminOnly: true },
+        { href: '/store-settings', labelKey: 'Store Settings', icon: Settings, adminOrSuperOnly: true },
         { href: '/users', labelKey: 'shell.sidebar.users', icon: Users, adminOnly: true },
         { href: '/logs', labelKey: 'shell.sidebar.logs', icon: ClipboardList, adminOnly: true },
       ],
@@ -91,6 +94,7 @@ function NavContent({ onClose }: { onClose?: () => void }) {
         {navGroups.map((group) => {
           const visibleItems = group.items.filter((item) => {
             if (item.superAdminOnly) return isSuperAdmin
+            if (item.adminOrSuperOnly) return isAdmin || isSuperAdmin
             if (item.adminOnly) return isAdmin
             return true
           })
@@ -126,7 +130,9 @@ function NavContent({ onClose }: { onClose?: () => void }) {
                           isActive ? 'text-white' : 'text-slate-400 group-hover:text-slate-600',
                         )}
                       />
-                      <span className="flex-1">{item.labelKey === 'Stores' ? 'Stores' : t(item.labelKey)}</span>
+                      <span className="flex-1">
+                        {item.labelKey === 'Stores' || item.labelKey === 'Store Settings' ? item.labelKey : t(item.labelKey)}
+                      </span>
                       {isActive && <ChevronRight className="h-3 w-3 text-blue-200" />}
                     </Link>
                   )

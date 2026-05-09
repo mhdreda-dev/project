@@ -32,4 +32,31 @@ export const createStoreSchema = z.object({
   }),
 })
 
+const optionalUrl = z
+  .string()
+  .trim()
+  .url('Enter a valid URL')
+  .optional()
+  .nullable()
+  .or(z.literal(''))
+
+export const updateStoreSettingsSchema = z.object({
+  name: z.string().min(2, 'Store name is required').max(255).trim(),
+  phone: z.string().max(50).optional().nullable(),
+  whatsapp: z.string().max(50).optional().nullable(),
+  address: z.string().max(500).optional().nullable(),
+  logoUrl: optionalUrl,
+  instagramUrl: optionalUrl,
+  facebookUrl: optionalUrl,
+  shortDescription: z.string().max(500).optional().nullable(),
+  heroImageUrl: optionalUrl,
+  primaryColor: z
+    .string()
+    .regex(/^#[0-9A-Fa-f]{6}$/, 'Accent color must be a hex color')
+    .optional()
+    .nullable()
+    .or(z.literal('')),
+})
+
 export type CreateStoreInput = z.infer<typeof createStoreSchema>
+export type UpdateStoreSettingsInput = z.infer<typeof updateStoreSettingsSchema>

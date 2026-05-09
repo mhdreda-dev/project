@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
+import type { CSSProperties, ReactNode } from 'react'
 import Link from 'next/link'
 import { getPublicStore } from '@/lib/storefront/storefront.service'
 import { buildStoreWhatsAppUrl } from '@/lib/storefront/whatsapp'
@@ -10,23 +11,30 @@ import { WhatsAppFab } from './_components/whatsapp-fab'
 import { WhatsAppIcon } from './_components/icons'
 
 type Props = {
-  children: React.ReactNode
+  children: ReactNode
   params: { storeSlug: string }
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const store = await getPublicStore(params.storeSlug)
   if (!store) return { title: 'Store not found' }
-  const logoUrl = getStoreLogoUrl(store.slug)
+  const logoUrl = store.logoUrl ?? getStoreLogoUrl(store.slug)
+  const description =
+    store.shortDescription?.trim() ||
+    `Shop the latest collection at ${store.name}. Order easily on WhatsApp.`
   return {
     title: { default: store.name, template: `%s · ${store.name}` },
-    description: `Shop the latest collection at ${store.name}. Order easily on WhatsApp.`,
+    description,
     icons: logoUrl ? { icon: logoUrl, apple: logoUrl } : undefined,
     openGraph: {
       title: store.name,
-      description: `Shop ${store.name}. Order on WhatsApp.`,
+      description,
       type: 'website',
-      ...(logoUrl ? { images: [{ url: logoUrl }] } : {}),
+      ...(store.heroImageUrl
+        ? { images: [{ url: store.heroImageUrl }] }
+        : logoUrl
+          ? { images: [{ url: logoUrl }] }
+          : {}),
     },
   }
 }
@@ -36,7 +44,14 @@ export default async function StorefrontLayout({ children, params }: Props) {
   if (!store) notFound()
 
   const whatsAppUrl = buildStoreWhatsAppUrl(store)
-  const logoUrl = getStoreLogoUrl(store.slug)
+  const logoUrl = store.logoUrl ?? getStoreLogoUrl(store.slug)
+  const accentColor = store.primaryColor?.trim() || '#fde68a'
+  const footerDescription =
+    store.shortDescription?.trim() ||
+    'Modern shopping experience powered by direct WhatsApp orders. No checkout, no friction.'
+  const storefrontStyle = {
+    '--store-accent': accentColor,
+  } as CSSProperties
   const navLinks = [
     { label: 'Home', href: `/${store.slug}` },
     { label: 'Shop', href: `/${store.slug}/products` },
@@ -49,7 +64,10 @@ export default async function StorefrontLayout({ children, params }: Props) {
   ]
 
   return (
-    <div className="relative min-h-screen flex flex-col overflow-x-hidden bg-[#080807] text-white antialiased selection:bg-amber-200 selection:text-stone-950">
+    <div
+      style={storefrontStyle}
+      className="relative min-h-screen flex flex-col overflow-x-hidden bg-[#080807] text-white antialiased selection:bg-[var(--store-accent)] selection:text-stone-950"
+    >
       <div aria-hidden="true" className="fixed inset-0 -z-10 pointer-events-none">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_-10%,rgba(251,191,36,0.12),transparent_32%),radial-gradient(circle_at_8%_30%,rgba(244,114,182,0.05),transparent_28%),radial-gradient(circle_at_90%_22%,rgba(16,185,129,0.05),transparent_26%),linear-gradient(180deg,#080807_0%,#11100e_42%,#080807_100%)]" />
         <div
@@ -91,7 +109,7 @@ export default async function StorefrontLayout({ children, params }: Props) {
               />
               <span className="font-serif text-[20px] sm:text-[24px] tracking-[-0.02em] leading-none text-white truncate">
                 {store.name}
-                <span className="text-amber-200/90">.</span>
+                <span className="text-[var(--store-accent)]">.</span>
               </span>
             </Link>
 
@@ -175,16 +193,16 @@ export default async function StorefrontLayout({ children, params }: Props) {
             <div className="flex items-center gap-2.5 mb-3">
               <StorefrontLogo storeName={store.name} src={logoUrl} size="md" />
               <p className="font-serif text-xl tracking-tight text-white">
-                {store.name}<span className="text-amber-200/90">.</span>
+                {store.name}<span className="text-[var(--store-accent)]">.</span>
               </p>
             </div>
             <p className="text-sm text-white/50 leading-relaxed max-w-xs">
-              Modern shopping experience powered by direct WhatsApp orders. No checkout, no friction.
+              {footerDescription}
             </p>
           </div>
 
           <div className="relative">
-            <p className="font-mono text-[10px] uppercase tracking-[0.28em] text-amber-200/65 font-semibold mb-4">Shop</p>
+            <p className="font-mono text-[10px] uppercase tracking-[0.28em] text-[var(--store-accent)] font-semibold mb-4">Shop</p>
             <ul className="space-y-2.5 text-sm">
               <li><Link href={`/${store.slug}`} className="text-white/55 hover:text-white transition-colors">Home</Link></li>
               <li><Link href={`/${store.slug}/products`} className="text-white/55 hover:text-white transition-colors">All products</Link></li>
@@ -192,7 +210,7 @@ export default async function StorefrontLayout({ children, params }: Props) {
           </div>
 
           <div className="relative">
-            <p className="font-mono text-[10px] uppercase tracking-[0.28em] text-amber-200/65 font-semibold mb-4">Contact</p>
+            <p className="font-mono text-[10px] uppercase tracking-[0.28em] text-[var(--store-accent)] font-semibold mb-4">Contact</p>
             <ul className="space-y-2.5 text-sm">
               {store.phone && (
                 <li>
@@ -215,6 +233,30 @@ export default async function StorefrontLayout({ children, params }: Props) {
                 </li>
               )}
               {store.address && <li className="text-white/55">{store.address}</li>}
+              {store.instagramUrl && (
+                <li>
+                  <a
+                    href={store.instagramUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-white/55 hover:text-white transition-colors"
+                  >
+                    Instagram
+                  </a>
+                </li>
+              )}
+              {store.facebookUrl && (
+                <li>
+                  <a
+                    href={store.facebookUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-white/55 hover:text-white transition-colors"
+                  >
+                    Facebook
+                  </a>
+                </li>
+              )}
             </ul>
           </div>
         </div>

@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
   try {
     const session = await auth()
     if (!session) return apiError('Unauthorized', 401)
-    if (session.user.role !== 'ADMIN') return apiError('Forbidden', 403)
+    if (session.user.role !== 'ADMIN' && session.user.role !== 'SUPER_ADMIN') return apiError('Forbidden', 403)
 
     if (!process.env.BLOB_READ_WRITE_TOKEN) {
       return NextResponse.json(

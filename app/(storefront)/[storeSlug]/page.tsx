@@ -6,7 +6,6 @@ import {
   getPublicCategories,
 } from '@/lib/storefront/storefront.service'
 import { buildStoreWhatsAppUrl } from '@/lib/storefront/whatsapp'
-import { getStoreLogoUrl } from '@/lib/storefront/logos'
 import { Reveal } from './_components/reveal'
 import { HeroSlider } from './_components/hero-slider'
 import { FeaturedProducts } from './_components/featured-products'
@@ -37,16 +36,18 @@ export default async function StorefrontHomePage({ params }: Props) {
   ])
 
   const whatsAppUrl = buildStoreWhatsAppUrl(store)
-  // logoUrl/StorefrontLogo is rendered by the storefront layout's header.
-  void getStoreLogoUrl
-
   // Featured grid uses up to 8 of the latest products
   const featured = products.slice(0, 8)
 
   return (
     <div className="relative">
       {/* ── Editorial hero (curated visuals — NOT bound to DB products) ── */}
-      <HeroSlider storeSlug={store.slug} exploreAnchor="featured" />
+      <HeroSlider
+        storeSlug={store.slug}
+        storeName={store.name}
+        heroImageUrl={store.heroImageUrl}
+        exploreAnchor="featured"
+      />
 
       {/* ── Trust strip — dark editorial ─────────────────────────────────── */}
       <section className="relative overflow-hidden text-white">
@@ -96,7 +97,7 @@ export default async function StorefrontHomePage({ params }: Props) {
       </div>
 
       {/* ── Cinematic lookbook (real product imagery) ───────────────────── */}
-      <LookbookSection products={products} storeSlug={store.slug} />
+      <LookbookSection products={products} storeSlug={store.slug} storeName={store.name} />
 
       {/* ── Categories ───────────────────────────────────────────────────── */}
       {categories.length > 0 && (

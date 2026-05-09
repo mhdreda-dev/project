@@ -77,7 +77,14 @@ model Store {
   name            String
   slug            String           @unique
   phone           String?
+  whatsapp        String?
   address         String?
+  logoUrl         String?
+  instagramUrl    String?
+  facebookUrl     String?
+  shortDescription String?         @db.Text
+  heroImageUrl    String?
+  primaryColor    String?
   isDefault       Boolean          @default(false)
   isActive        Boolean          @default(true)
   createdAt       DateTime         @default(now())

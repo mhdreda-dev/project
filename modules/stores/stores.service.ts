@@ -1,6 +1,7 @@
 import bcrypt from 'bcryptjs'
 import { db } from '@/lib/db'
 import { Role } from '@prisma/client'
+import { UpdateStoreSettingsInput } from '@/lib/validations/store'
 
 export interface CreateStoreInput {
   name: string
@@ -68,6 +69,60 @@ export class StoresService {
       })
 
       return { store, admin }
+    })
+  }
+
+  async findSettings(storeId: string) {
+    return db.store.findUnique({
+      where: { id: storeId },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        phone: true,
+        whatsapp: true,
+        address: true,
+        logoUrl: true,
+        instagramUrl: true,
+        facebookUrl: true,
+        shortDescription: true,
+        heroImageUrl: true,
+        primaryColor: true,
+        isActive: true,
+      },
+    })
+  }
+
+  async updateSettings(storeId: string, input: UpdateStoreSettingsInput) {
+    return db.store.update({
+      where: { id: storeId },
+      data: {
+        name: input.name.trim(),
+        phone: input.phone?.trim() || null,
+        whatsapp: input.whatsapp?.trim() || null,
+        address: input.address?.trim() || null,
+        logoUrl: input.logoUrl?.trim() || null,
+        instagramUrl: input.instagramUrl?.trim() || null,
+        facebookUrl: input.facebookUrl?.trim() || null,
+        shortDescription: input.shortDescription?.trim() || null,
+        heroImageUrl: input.heroImageUrl?.trim() || null,
+        primaryColor: input.primaryColor?.trim() || null,
+      },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        phone: true,
+        whatsapp: true,
+        address: true,
+        logoUrl: true,
+        instagramUrl: true,
+        facebookUrl: true,
+        shortDescription: true,
+        heroImageUrl: true,
+        primaryColor: true,
+        isActive: true,
+      },
     })
   }
 }

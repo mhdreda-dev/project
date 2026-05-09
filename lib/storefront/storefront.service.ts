@@ -55,7 +55,20 @@ function serializeProduct<T extends Record<string, any>>(p: T) {
 export async function getPublicStore(slug: string) {
   return db.store.findFirst({
     where: { slug, isActive: true },
-    select: { id: true, name: true, slug: true, phone: true, address: true },
+    select: {
+      id: true,
+      name: true,
+      slug: true,
+      phone: true,
+      whatsapp: true,
+      address: true,
+      logoUrl: true,
+      instagramUrl: true,
+      facebookUrl: true,
+      shortDescription: true,
+      heroImageUrl: true,
+      primaryColor: true,
+    },
   })
 }
 

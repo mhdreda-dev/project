@@ -11,18 +11,18 @@ function formatMad(price: number): string {
   })
 }
 
-export function buildStoreWhatsAppUrl(store: { name: string; phone: string | null }): string | null {
-  const digits = normalizePhoneForWhatsApp(store.phone ?? '')
+export function buildStoreWhatsAppUrl(store: { name: string; phone: string | null; whatsapp?: string | null }): string | null {
+  const digits = normalizePhoneForWhatsApp(store.whatsapp || store.phone || '')
   if (!digits) return null
   const message = `Hello ${store.name}, I'd like to know more about your products.`
   return `https://wa.me/${digits}?text=${encodeURIComponent(message)}`
 }
 
 export function buildProductWhatsAppUrl(
-  store: { name: string; phone: string | null },
+  store: { name: string; phone: string | null; whatsapp?: string | null },
   product: { name: string; sku: string; price: number },
 ): string | null {
-  const digits = normalizePhoneForWhatsApp(store.phone ?? '')
+  const digits = normalizePhoneForWhatsApp(store.whatsapp || store.phone || '')
   if (!digits) return null
   const message = [
     `Hello ${store.name}, I'd like to order:`,
