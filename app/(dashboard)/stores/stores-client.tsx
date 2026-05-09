@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { type ReactNode, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Building2, Loader2, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -150,56 +150,64 @@ function CreateStoreDialog({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
+      <DialogContent className="flex max-h-[calc(100vh-2rem)] w-[calc(100vw-2rem)] max-w-3xl flex-col gap-0 overflow-hidden rounded-2xl border-slate-200 p-0 shadow-2xl sm:max-w-3xl">
+        <DialogHeader className="border-b border-slate-100 px-5 py-4 pr-12 sm:px-6">
           <DialogTitle>Create Store</DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-5">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-1">
-              <Label htmlFor="name">Store name *</Label>
-              <Input id="name" name="name" placeholder="Benami Rabat" required />
-            </div>
-            <div className="space-y-1">
-              <Label htmlFor="slug">Slug *</Label>
-              <Input id="slug" name="slug" placeholder="benami-rabat" pattern="[a-z0-9-]+" required />
-            </div>
-            <div className="space-y-1">
-              <Label htmlFor="phone">Phone</Label>
-              <Input id="phone" name="phone" placeholder="+212 ..." />
-            </div>
-            <div className="space-y-1">
-              <Label htmlFor="address">Address</Label>
-              <Input id="address" name="address" placeholder="Store address" />
+        <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
+          <div className="min-h-0 flex-1 overflow-y-auto bg-slate-50/60 px-5 py-5 sm:px-6">
+            <div className="space-y-4">
+              <StoreFormSection title="Store information" description="Core identity and public URL for this shop.">
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <Field label="Store name *" htmlFor="name">
+                    <Input id="name" name="name" placeholder="Benami Rabat" required className="rounded-xl border-slate-200 bg-white" />
+                  </Field>
+                  <Field label="Slug *" htmlFor="slug">
+                    <Input id="slug" name="slug" placeholder="benami-rabat" pattern="[a-z0-9-]+" required className="rounded-xl border-slate-200 bg-white" />
+                  </Field>
+                </div>
+              </StoreFormSection>
+
+              <StoreFormSection title="Store branding/contact" description="Contact details customers and operators will recognize.">
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <Field label="Phone / WhatsApp" htmlFor="phone">
+                    <Input id="phone" name="phone" placeholder="+212 ..." className="rounded-xl border-slate-200 bg-white" />
+                  </Field>
+                  <Field label="Address" htmlFor="address">
+                    <Input id="address" name="address" placeholder="Store address" className="rounded-xl border-slate-200 bg-white" />
+                  </Field>
+                </div>
+              </StoreFormSection>
+
+              <StoreFormSection title="Store admin" description="This user will manage the store after creation.">
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <Field label="Admin name *" htmlFor="adminName">
+                    <Input id="adminName" name="adminName" required className="rounded-xl border-slate-200 bg-white" />
+                  </Field>
+                  <Field label="Admin email *" htmlFor="adminEmail">
+                    <Input id="adminEmail" name="adminEmail" type="email" required className="rounded-xl border-slate-200 bg-white" />
+                  </Field>
+                  <Field label="Admin password *" htmlFor="adminPassword" className="sm:col-span-2">
+                    <Input id="adminPassword" name="adminPassword" type="password" required className="rounded-xl border-slate-200 bg-white" />
+                  </Field>
+                </div>
+              </StoreFormSection>
+
+              <StoreFormSection title="Status" description="Inactive stores remain hidden from active store workflows.">
+                <label className="flex items-center justify-between gap-4 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700">
+                  <span>
+                    <span className="block font-medium text-slate-900">Active store</span>
+                    <span className="text-xs text-slate-500">Enable this shop immediately after creation.</span>
+                  </span>
+                  <input name="isActive" type="checkbox" defaultChecked className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500" />
+                </label>
+              </StoreFormSection>
             </div>
           </div>
 
-          <div className="rounded-lg border p-4 space-y-4">
-            <p className="text-sm font-medium">Store admin</p>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-1">
-                <Label htmlFor="adminName">Admin name *</Label>
-                <Input id="adminName" name="adminName" required />
-              </div>
-              <div className="space-y-1">
-                <Label htmlFor="adminEmail">Admin email *</Label>
-                <Input id="adminEmail" name="adminEmail" type="email" required />
-              </div>
-              <div className="space-y-1 sm:col-span-2">
-                <Label htmlFor="adminPassword">Admin password *</Label>
-                <Input id="adminPassword" name="adminPassword" type="password" required />
-              </div>
-            </div>
-          </div>
-
-          <label className="flex items-center gap-2 text-sm text-slate-700">
-            <input name="isActive" type="checkbox" defaultChecked className="h-4 w-4 rounded border-slate-300" />
-            Active store
-          </label>
-
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
-            <Button type="submit" disabled={loading}>
+          <DialogFooter className="shrink-0 gap-2 border-t border-slate-100 bg-white px-5 py-4 sm:px-6">
+            <Button type="button" variant="outline" onClick={onClose} className="rounded-xl">Cancel</Button>
+            <Button type="submit" disabled={loading} className="rounded-xl">
               {loading && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
               Create Store
             </Button>
@@ -207,5 +215,46 @@ function CreateStoreDialog({
         </form>
       </DialogContent>
     </Dialog>
+  )
+}
+
+function StoreFormSection({
+  title,
+  description,
+  children,
+}: {
+  title: string
+  description: string
+  children: ReactNode
+}) {
+  return (
+    <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+      <div className="mb-4">
+        <h3 className="text-sm font-semibold text-slate-950">{title}</h3>
+        <p className="mt-1 text-xs leading-5 text-slate-500">{description}</p>
+      </div>
+      {children}
+    </section>
+  )
+}
+
+function Field({
+  label,
+  htmlFor,
+  className = '',
+  children,
+}: {
+  label: string
+  htmlFor: string
+  className?: string
+  children: ReactNode
+}) {
+  return (
+    <div className={`space-y-1.5 ${className}`}>
+      <Label htmlFor={htmlFor} className="text-xs font-medium text-slate-700">
+        {label}
+      </Label>
+      {children}
+    </div>
   )
 }

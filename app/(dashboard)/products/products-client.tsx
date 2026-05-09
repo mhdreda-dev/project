@@ -703,19 +703,24 @@ export function ProductsClient({ initialProducts, meta: initialMeta, brands, isA
 
       {/* Create / Edit Modal */}
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <DialogContent className="flex max-h-[calc(100vh-2rem)] w-[calc(100vw-2rem)] max-w-4xl flex-col gap-0 overflow-hidden rounded-2xl p-0 sm:max-w-4xl">
+        <DialogContent className="flex max-h-[calc(100vh-2rem)] w-[calc(100vw-2rem)] max-w-5xl flex-col gap-0 overflow-hidden rounded-2xl border-slate-200 p-0 shadow-2xl sm:max-w-5xl">
           <DialogHeader className="border-b border-slate-100 px-5 py-4 pr-12 sm:px-6">
             <DialogTitle>{editing ? t('products.dialog.editTitle') : t('products.dialog.newTitle')}</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
-            <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5 sm:px-6">
-              <div className="space-y-5">
-                <div className="grid grid-cols-1 gap-5 lg:grid-cols-[280px_minmax(0,1fr)] lg:items-start">
-                  <ImageUpload
-                    value={form.imageUrl}
-                    onChange={(url) => setForm((f) => ({ ...f, imageUrl: url ?? '' }))}
-                    className="lg:sticky lg:top-0 [&_.h-48]:h-56"
-                  />
+            <div className="min-h-0 flex-1 overflow-y-auto bg-slate-50/60 px-5 py-5 sm:px-6">
+              <div className="space-y-4">
+                <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+                  <div className="mb-4">
+                    <h3 className="text-sm font-semibold text-slate-950">Product information</h3>
+                    <p className="mt-1 text-xs leading-5 text-slate-500">Add the image, identity, category, and customer-facing description.</p>
+                  </div>
+                  <div className="grid grid-cols-1 gap-5 lg:grid-cols-[320px_minmax(0,1fr)] lg:items-start">
+                    <ImageUpload
+                      value={form.imageUrl}
+                      onChange={(url) => setForm((f) => ({ ...f, imageUrl: url ?? '' }))}
+                      className="lg:sticky lg:top-0 [&_.h-48]:h-64"
+                    />
 
                   {/* Basic info */}
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -727,7 +732,7 @@ export function ProductsClient({ initialProducts, meta: initialMeta, brands, isA
                         onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
                         placeholder="Classic T-Shirt"
                         required
-                        className="mt-1 rounded-xl"
+                        className="mt-1 rounded-xl border-slate-200"
                       />
                     </div>
                     <div>
@@ -738,7 +743,7 @@ export function ProductsClient({ initialProducts, meta: initialMeta, brands, isA
                         onChange={(e) => setForm((f) => ({ ...f, sku: e.target.value }))}
                         placeholder="TS-001"
                         required
-                        className="mt-1 rounded-xl"
+                        className="mt-1 rounded-xl border-slate-200"
                       />
                     </div>
                     <div>
@@ -781,13 +786,19 @@ export function ProductsClient({ initialProducts, meta: initialMeta, brands, isA
                         onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
                         placeholder={t('common.placeholders.productDescription')}
                         rows={3}
-                        className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                        className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
                       />
                     </div>
                   </div>
-                </div>
+                  </div>
+                </section>
 
                 {/* Pricing (product-level) */}
+                <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+                  <div className="mb-4">
+                    <h3 className="text-sm font-semibold text-slate-950">Pricing and stock rules</h3>
+                    <p className="mt-1 text-xs leading-5 text-slate-500">Set selling price and low-stock threshold before configuring sizes.</p>
+                  </div>
                 <div className={`grid grid-cols-1 gap-4 ${isAdmin ? 'sm:grid-cols-3' : 'sm:grid-cols-2'}`}>
               <div>
                 <Label htmlFor="price">{t('common.labels.salePriceMad')} *</Label>
@@ -800,7 +811,7 @@ export function ProductsClient({ initialProducts, meta: initialMeta, brands, isA
                   onChange={(e) => setForm((f) => ({ ...f, price: e.target.value }))}
                   placeholder={t('common.placeholders.priceMad')}
                   required
-                  className="mt-1 rounded-xl"
+                  className="mt-1 rounded-xl border-slate-200"
                 />
               </div>
               {isAdmin && (
@@ -814,7 +825,7 @@ export function ProductsClient({ initialProducts, meta: initialMeta, brands, isA
                     value={form.costPrice}
                     onChange={(e) => setForm((f) => ({ ...f, costPrice: e.target.value }))}
                     placeholder={t('common.placeholders.priceMad')}
-                    className="mt-1 rounded-xl"
+                    className="mt-1 rounded-xl border-slate-200"
                   />
                 </div>
               )}
@@ -826,16 +837,20 @@ export function ProductsClient({ initialProducts, meta: initialMeta, brands, isA
                   min={0}
                   value={form.lowStockThreshold}
                   onChange={(e) => setForm((f) => ({ ...f, lowStockThreshold: e.target.value }))}
-                  className="mt-1 rounded-xl"
+                  className="mt-1 rounded-xl border-slate-200"
                 />
               </div>
                 </div>
+                </section>
 
                 {/* Sizes */}
-                <div className="rounded-2xl border border-slate-100 bg-slate-50/60 p-4">
-              <div className="flex items-center justify-between mb-2">
-                <Label>{t('products.dialog.sizes')}</Label>
-                <div className="flex gap-1.5">
+                <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+              <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <Label>{t('products.dialog.sizes')}</Label>
+                  <p className="mt-1 text-xs leading-5 text-slate-500">Use this for simple products without color-specific stock.</p>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
                   {(Object.keys(SIZE_PRESETS) as PresetKey[]).map((key) => (
                     <button
                       key={key}
@@ -890,7 +905,7 @@ export function ProductsClient({ initialProducts, meta: initialMeta, brands, isA
                       }
                     }}
                     placeholder={t('common.placeholders.customSize')}
-                    className="rounded-xl h-9 text-sm"
+                    className="h-9 rounded-xl border-slate-200 text-sm"
                   />
                   <Button type="button" variant="outline" onClick={addCustomSize} className="rounded-xl h-9">
                     {t('common.actions.add')}
@@ -904,7 +919,7 @@ export function ProductsClient({ initialProducts, meta: initialMeta, brands, isA
                   {t('products.dialog.noSizes')}
                 </p>
               ) : (
-                <div className="space-y-1.5 max-h-52 overflow-y-auto pr-1">
+                <div className="space-y-1.5 max-h-52 overflow-y-auto rounded-xl border border-slate-100 bg-white p-2 pr-1">
                   <div className="grid grid-cols-[1fr_100px_32px] gap-2 text-[10px] font-medium text-slate-400 uppercase tracking-wide px-1">
                     <span>{t('common.labels.size')}</span>
                     <span>{t('common.labels.quantity')}</span>
@@ -945,10 +960,10 @@ export function ProductsClient({ initialProducts, meta: initialMeta, brands, isA
                   Simple sizes are ignored while color variants are enabled. Stock will come from each color card.
                 </p>
               )}
-                </div>
+                </section>
 
                 {/* Color variants */}
-                <div className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
+                <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
                   <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div>
                       <Label>Variants / Colors</Label>
@@ -967,7 +982,7 @@ export function ProductsClient({ initialProducts, meta: initialMeta, brands, isA
                       No color variants. This product will use the simple image, sizes, and stock above.
                     </p>
                   ) : (
-                    <div className="space-y-3">
+                    <div className="max-h-[520px] space-y-3 overflow-y-auto pr-1">
                       {variants.map((variant, index) => {
                         const total = variant.sizes.reduce((sum, size) => sum + Number(size.quantity || 0), 0)
                         return (
@@ -1004,11 +1019,11 @@ export function ProductsClient({ initialProducts, meta: initialMeta, brands, isA
 
                             {variant.expanded && (
                               <div className="space-y-4 border-t border-slate-200 bg-white p-4">
-                                <div className="grid gap-4 sm:grid-cols-[180px_minmax(0,1fr)]">
+                                <div className="grid gap-4 lg:grid-cols-[200px_minmax(0,1fr)]">
                                   <ImageUpload
                                     value={variant.imageUrl}
                                     onChange={(url) => updateVariant(variant.clientId, { imageUrl: url ?? '' })}
-                                    className="[&_.h-48]:h-40"
+                                    className="[&_.h-48]:h-44"
                                   />
                                   <div className="grid gap-4 sm:grid-cols-2">
                                     <div>
@@ -1017,7 +1032,7 @@ export function ProductsClient({ initialProducts, meta: initialMeta, brands, isA
                                         value={variant.colorName}
                                         onChange={(e) => updateVariant(variant.clientId, { colorName: e.target.value })}
                                         placeholder="Beige"
-                                        className="mt-1 rounded-xl"
+                                        className="mt-1 rounded-xl border-slate-200"
                                       />
                                     </div>
                                     <div>
@@ -1027,13 +1042,13 @@ export function ProductsClient({ initialProducts, meta: initialMeta, brands, isA
                                           type="color"
                                           value={variant.colorHex}
                                           onChange={(e) => updateVariant(variant.clientId, { colorHex: e.target.value })}
-                                          className="h-10 w-14 rounded-xl p-1"
+                                          className="h-10 w-14 rounded-xl border-slate-200 p-1"
                                         />
                                         <Input
                                           value={variant.colorHex}
                                           onChange={(e) => updateVariant(variant.clientId, { colorHex: e.target.value })}
                                           placeholder="#111827"
-                                          className="rounded-xl"
+                                          className="rounded-xl border-slate-200"
                                         />
                                       </div>
                                     </div>
@@ -1044,7 +1059,7 @@ export function ProductsClient({ initialProducts, meta: initialMeta, brands, isA
                                           value={variant.extraImageUrl}
                                           onChange={(e) => updateVariant(variant.clientId, { extraImageUrl: e.target.value })}
                                           placeholder="https://..."
-                                          className="rounded-xl"
+                                          className="rounded-xl border-slate-200"
                                         />
                                         <Button type="button" variant="outline" onClick={() => addVariantImage(variant.clientId)} className="rounded-xl">
                                           Add
@@ -1114,7 +1129,7 @@ export function ProductsClient({ initialProducts, meta: initialMeta, brands, isA
                                         }
                                       }}
                                       placeholder={t('common.placeholders.customSize')}
-                                      className="h-9 rounded-xl text-sm"
+                                      className="h-9 rounded-xl border-slate-200 text-sm"
                                     />
                                     <Button type="button" variant="outline" onClick={() => addVariantCustomSize(variant.clientId)} className="h-9 rounded-xl">
                                       {t('common.actions.add')}
@@ -1123,7 +1138,7 @@ export function ProductsClient({ initialProducts, meta: initialMeta, brands, isA
                                   {variant.sizes.length === 0 ? (
                                     <p className="text-xs italic text-slate-400">No sizes selected for this color.</p>
                                   ) : (
-                                    <div className="space-y-1.5">
+                                    <div className="space-y-1.5 rounded-xl border border-slate-100 bg-slate-50/70 p-2">
                                       <div className="grid grid-cols-[1fr_100px_32px] gap-2 px-1 text-[10px] font-medium uppercase tracking-wide text-slate-400">
                                         <span>{t('common.labels.size')}</span>
                                         <span>{t('common.labels.quantity')}</span>
@@ -1160,7 +1175,7 @@ export function ProductsClient({ initialProducts, meta: initialMeta, brands, isA
                       })}
                     </div>
                   )}
-                </div>
+                </section>
 
                 {/* Active toggle */}
                 <label className="flex items-center gap-2.5 cursor-pointer">
