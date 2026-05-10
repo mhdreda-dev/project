@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import {
   ArrowLeft, Package, ArrowUpCircle, ArrowDownCircle, TrendingUp, AlertTriangle,
-  Loader2, DollarSign, Layers, ChevronRight,
+  Loader2, DollarSign, Layers, ChevronRight, PackageMinus,
 } from 'lucide-react'
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
@@ -17,6 +17,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { SafeImage } from '@/components/ui/safe-image'
+import { DecreaseStockDialog } from '@/components/products/decrease-stock-dialog'
 import { useToast } from '@/hooks/use-toast'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import { useI18n } from '@/components/i18n-provider'
@@ -38,6 +39,7 @@ type Movement = {
   newQty: number
   reason: string | null
   reference: string | null
+  note: string | null
   createdAt: string | Date
   user: { name: string | null; email: string }
 }
@@ -61,11 +63,12 @@ type Product = {
 interface Props {
   product: Product
   isAdmin: boolean
+  canDecreaseStock: boolean
 }
 
 type ChartPoint = { date: string; in_qty: number; out_qty: number }
 
-export function ProductDetailClient({ product: initial, isAdmin }: Props) {
+export function ProductDetailClient({ product: initial, isAdmin, canDecreaseStock }: Props) {
   const router = useRouter()
   const { toast } = useToast()
   const { t } = useI18n()
@@ -80,6 +83,7 @@ export function ProductDetailClient({ product: initial, isAdmin }: Props) {
   const [adjustReason, setAdjustReason] = useState('')
   const [adjustRef, setAdjustRef] = useState('')
   const [saving, setSaving] = useState(false)
+  const [saleOpen, setSaleOpen] = useState(false)
 
   const displaySizes = product.variants?.length
     ? product.variants.flatMap((variant) =>
@@ -286,6 +290,19 @@ export function ProductDetailClient({ product: initial, isAdmin }: Props) {
               )}
             </div>
           )}
+          {canDecreaseStock && (
+            <div className="flex flex-wrap gap-2 pt-1">
+              <Button
+                type="button"
+                onClick={() => setSaleOpen(true)}
+                disabled={totalStock <= 0}
+                className="rounded-xl gap-2"
+              >
+                <PackageMinus className="h-4 w-4" />
+                Vente / Diminuer stock
+              </Button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -367,6 +384,18 @@ export function ProductDetailClient({ product: initial, isAdmin }: Props) {
                         </Button>
                       </div>
                     )}
+                    {canDecreaseStock && !isAdmin && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-8 rounded-lg gap-1 border-red-100 bg-red-50 text-red-700 hover:bg-red-100"
+                        onClick={() => setSaleOpen(true)}
+                        disabled={s.quantity === 0}
+                      >
+                        <PackageMinus className="h-3.5 w-3.5" />
+                        Vente
+                      </Button>
+                    )}
                   </div>
                 )
               })}
@@ -444,7 +473,8 @@ export function ProductDetailClient({ product: initial, isAdmin }: Props) {
                         </span>
                       </p>
                       <p className="text-xs text-slate-500 truncate">
-                        {m.reason ?? <span className="italic text-slate-400">{t('common.status.noReason')}</span>}
+                        {m.note || m.reason || <span className="italic text-slate-400">{t('common.status.noReason')}</span>}
+                        {m.note && m.reason && <> · {m.reason}</>}
                         {m.reference && <> · {t('common.labels.reference')}: {m.reference}</>}
                       </p>
                     </div>
@@ -551,6 +581,16 @@ export function ProductDetailClient({ product: initial, isAdmin }: Props) {
           </form>
         </DialogContent>
       </Dialog>
+
+      <DecreaseStockDialog
+        product={product}
+        open={saleOpen}
+        onOpenChange={setSaleOpen}
+        onSuccess={async () => {
+          await Promise.all([reloadProduct(), fetchChart()])
+          router.refresh()
+        }}
+      />
     </div>
   )
 }

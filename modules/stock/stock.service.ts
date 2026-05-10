@@ -1,7 +1,7 @@
 import { db } from '@/lib/db'
 import { paginate, paginationMeta } from '@/lib/utils'
 import { StoreScope } from '@/lib/store-context'
-import { StockMovementInput, StockQuery } from '@/lib/validations/stock'
+import { DecreaseStockInput, StockMovementInput, StockQuery } from '@/lib/validations/stock'
 import { rewardsService } from '@/modules/rewards/rewards.service'
 import { MovementType } from '@prisma/client'
 
@@ -65,6 +65,63 @@ export class StockService {
       if (input.type === 'OUT') {
         await rewardsService.createProductSoldEvent(tx, userId, size.productId, input.quantity, scope.storeId)
       }
+
+      return movement
+    })
+  }
+
+  async decreaseStockForSale(productId: string, input: DecreaseStockInput, userId: string, scope: StoreScope) {
+    return db.$transaction(async (tx) => {
+      const size = await tx.productSize.findFirst({
+        where: {
+          id: input.productSizeId,
+          productId,
+          product: {
+            storeId: scope.storeId,
+            isActive: true,
+            deletedAt: null,
+          },
+        },
+        include: {
+          product: true,
+          variant: { select: { id: true, colorName: true, colorHex: true } },
+        },
+      })
+
+      if (!size) throw new Error('Product size not found')
+      if (size.quantity < input.quantity) {
+        throw new Error(`Insufficient stock. Available: ${size.quantity}, requested: ${input.quantity}`)
+      }
+
+      const newQty = size.quantity - input.quantity
+      if (newQty < 0) throw new Error('Stock cannot go below 0')
+
+      await tx.productSize.update({
+        where: { id: size.id },
+        data: { quantity: newQty },
+      })
+
+      const movement = await tx.stockMovement.create({
+        data: {
+          storeId: scope.storeId,
+          productId: size.productId,
+          productSizeId: size.id,
+          userId,
+          type: MovementType.OUT,
+          quantity: input.quantity,
+          previousQty: size.quantity,
+          newQty,
+          reason: 'SALE',
+          note: input.note || null,
+        },
+        include: {
+          product: { select: { name: true, sku: true } },
+          productSize: { select: { size: true } },
+          user: { select: { name: true } },
+        },
+      })
+
+      await rewardsService.createProductSoldEvent(tx, userId, size.productId, input.quantity, scope.storeId)
 
       return movement
     })

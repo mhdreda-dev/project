@@ -66,6 +66,7 @@ export default async function ProductsPage({
       meta={meta}
       brands={allBrands}
       isAdmin={session?.user?.role === 'ADMIN'}
+      canDecreaseStock={session?.user?.role === 'ADMIN' || session?.user?.role === 'EMPLOYEE'}
     />
   )
 }

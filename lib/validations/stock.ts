@@ -10,6 +10,12 @@ export const stockMovementSchema = z.object({
   reference: z.string().max(100).optional(),
 })
 
+export const decreaseStockSchema = z.object({
+  productSizeId: z.string().min(1, 'Product size is required'),
+  quantity: z.coerce.number().int().positive('Quantity must be positive'),
+  note: z.string().trim().max(500, 'Note must be 500 characters or fewer').optional(),
+})
+
 export const stockQuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(20),
@@ -20,4 +26,5 @@ export const stockQuerySchema = z.object({
 })
 
 export type StockMovementInput = z.infer<typeof stockMovementSchema>
+export type DecreaseStockInput = z.infer<typeof decreaseStockSchema>
 export type StockQuery = z.infer<typeof stockQuerySchema>

@@ -18,6 +18,7 @@ export default async function ProductDetailPage({ params }: { params: { id: stri
     <ProductDetailClient
       product={product as any}
       isAdmin={session?.user?.role === 'ADMIN'}
+      canDecreaseStock={session?.user?.role === 'ADMIN' || session?.user?.role === 'EMPLOYEE'}
     />
   )
 }
