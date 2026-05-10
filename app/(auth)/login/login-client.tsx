@@ -120,39 +120,39 @@ export function LoginClient({ storeSlug = '' }: LoginClientProps) {
     : 'Platform owner sign in'
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
-      <Card className="w-full max-w-md shadow-xl">
-        <CardHeader className="text-center space-y-3">
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 px-4 py-6 sm:p-4">
+      <Card className="w-full max-w-[92vw] rounded-2xl px-5 py-7 shadow-xl sm:max-w-md sm:rounded-lg sm:px-0 sm:py-0">
+        <CardHeader className="space-y-2 p-0 text-center sm:space-y-3 sm:p-6">
           <div className="flex justify-center">
             {isStoreLogin ? (
-              <div className="h-16 w-16 rounded-2xl bg-white border border-blue-100 shadow-sm flex items-center justify-center">
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-blue-100 bg-white shadow-sm sm:h-16 sm:w-16">
                 {storeName ? (
-                  <span className="text-xl font-bold text-blue-700">
+                  <span className="text-lg font-bold text-blue-700 sm:text-xl">
                     {storeInitials(storeName, normalizedStoreSlug)}
                   </span>
                 ) : (
-                  <Building2 className="h-8 w-8 text-blue-700" />
+                  <Building2 className="h-7 w-7 text-blue-700 sm:h-8 sm:w-8" />
                 )}
               </div>
             ) : (
-              <div className="h-12 w-12 rounded-xl bg-primary flex items-center justify-center">
-                <Package className="h-7 w-7 text-white" />
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary sm:h-12 sm:w-12">
+                <Package className="h-6 w-6 text-white sm:h-7 sm:w-7" />
               </div>
             )}
           </div>
-          <div className="space-y-1">
+          <div className="space-y-0.5 sm:space-y-1">
             {isStoreLogin && <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">StockMaster</p>}
-            <CardTitle className="text-2xl">{title}</CardTitle>
+            <CardTitle className="text-xl sm:text-2xl">{title}</CardTitle>
             <CardDescription>{description}</CardDescription>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="mt-5 p-0 sm:mt-0 sm:p-6 sm:pt-0">
           {storeError && (
-            <div className="mb-4 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+            <div className="mb-3 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive sm:mb-4">
               {storeError}
             </div>
           )}
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-3 sm:space-y-4">
             <div className="space-y-1">
               <Label htmlFor="email">{t('common.labels.email')}</Label>
               <Input
@@ -200,7 +200,7 @@ export function LoginClient({ storeSlug = '' }: LoginClientProps) {
             </Button>
           </form>
 
-          <div className="mt-4 text-center text-sm text-muted-foreground">
+          <div className="mt-3 text-center text-sm text-muted-foreground sm:mt-4">
             Access is invite-only. Ask your store administrator for an account.
           </div>
         </CardContent>

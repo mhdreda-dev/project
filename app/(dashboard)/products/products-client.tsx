@@ -784,9 +784,13 @@ export function ProductsClient({ initialProducts, meta: initialMeta, brands, isA
                         <SelectTrigger id="category" className="mt-1 rounded-xl border-slate-200">
                           <SelectValue placeholder="Choose a category" />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="max-sm:z-[9999] max-sm:overflow-hidden max-sm:rounded-xl max-sm:border max-sm:border-slate-200 max-sm:bg-white max-sm:shadow-xl dark:max-sm:border-zinc-800 dark:max-sm:bg-zinc-950">
                           {PRODUCT_CATEGORIES.map((category) => (
-                            <SelectItem key={category.value} value={category.value}>
+                            <SelectItem
+                              key={category.value}
+                              value={category.value}
+                              className="max-sm:bg-white max-sm:data-[highlighted]:bg-slate-100 max-sm:data-[state=checked]:bg-slate-50 dark:max-sm:bg-zinc-950 dark:max-sm:data-[highlighted]:bg-zinc-800 dark:max-sm:data-[state=checked]:bg-zinc-900"
+                            >
                               {category.label}
                             </SelectItem>
                           ))}
