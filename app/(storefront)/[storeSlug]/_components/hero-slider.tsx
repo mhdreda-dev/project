@@ -68,6 +68,7 @@ type Props = {
   storeSlug: string
   storeName?: string
   heroImageUrl?: string | null
+  whatsAppUrl?: string | null
   /** Optional: anchor id of the section the "Explore" button scrolls to. */
   exploreAnchor?: string
   /** Pause between slides in ms. Default 5200. */
@@ -92,6 +93,7 @@ export function HeroSlider({
   storeSlug,
   storeName,
   heroImageUrl,
+  whatsAppUrl,
   exploreAnchor = 'featured',
   intervalMs = 5200,
 }: Props) {
@@ -146,7 +148,7 @@ export function HeroSlider({
       aria-roledescription="carousel"
       aria-label="Editorial campaign"
     >
-      <div className="relative h-[100svh] min-h-[640px] sm:min-h-[720px] lg:min-h-[820px] max-h-[940px]">
+      <div className="relative min-h-[calc(100svh-104px)] sm:min-h-[720px] lg:min-h-[820px] lg:max-h-[940px]">
         {/* ── Slide image with crossfade + ken-burns ───────────────────── */}
         <AnimatePresence>
           <motion.div
@@ -170,38 +172,45 @@ export function HeroSlider({
               className="object-cover"
             />
             {/* Cinematic gradient overlays (legibility + mood) */}
-            <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/40 to-black/10" />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#080807] via-black/40 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/48 to-black/20" />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#080807] via-black/35 to-black/15" />
           </motion.div>
         </AnimatePresence>
 
-        {/* ── Ambient floating glows ───────────────────────────────────── */}
+        {/* ── Editorial texture ────────────────────────────────────────── */}
         <div aria-hidden="true" className="absolute inset-0 pointer-events-none">
-          <motion.div
-            className="absolute -top-40 -left-40 h-[40rem] w-[40rem] rounded-full bg-amber-500/[0.10] blur-3xl"
-            animate={{ scale: [1, 1.06, 1], opacity: [0.7, 1, 0.7] }}
-            transition={{ duration: 10, repeat: Infinity, ease: 'easeInOut' }}
+          <div
+            className="absolute inset-0 opacity-[0.08] [mask-image:linear-gradient(180deg,black,transparent_82%)]"
+            style={{
+              backgroundImage:
+                'linear-gradient(rgba(255,255,255,0.4) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.32) 1px, transparent 1px)',
+              backgroundSize: '44px 44px',
+            }}
           />
-          <motion.div
-            className="absolute -bottom-40 -right-40 h-[40rem] w-[40rem] rounded-full bg-rose-500/[0.07] blur-3xl"
-            animate={{ scale: [1, 1.08, 1], opacity: [0.55, 0.9, 0.55] }}
-            transition={{ duration: 12, repeat: Infinity, ease: 'easeInOut', delay: 2 }}
+          <div
+            className="absolute inset-0 opacity-70"
+            style={{
+              background:
+                'linear-gradient(115deg, rgba(251,191,36,0.18) 0%, transparent 34%, rgba(255,255,255,0.06) 50%, transparent 72%)',
+            }}
           />
-          <motion.div
-            className="absolute top-1/3 right-1/4 h-[28rem] w-[28rem] rounded-full bg-emerald-500/[0.05] blur-3xl"
-            animate={{ scale: [1, 1.05, 1], opacity: [0.5, 0.8, 0.5] }}
-            transition={{ duration: 14, repeat: Infinity, ease: 'easeInOut', delay: 4 }}
+          <div
+            className="absolute inset-x-0 bottom-0 h-48"
+            style={{
+              background:
+                'linear-gradient(180deg, transparent 0%, rgba(8,8,7,0.78) 58%, #080807 100%)',
+            }}
           />
         </div>
 
         {/* ── Top corner UI: slide counter ─────────────────────────────── */}
-        <div className="absolute top-24 sm:top-28 right-4 sm:right-8 z-20 font-mono text-[10px] uppercase tracking-[0.3em] text-white/55">
+        <div className="absolute right-4 top-20 z-20 rounded-full border border-white/10 bg-black/25 px-3 py-2 font-mono text-[10px] uppercase tracking-[0.3em] text-white/65 backdrop-blur-sm sm:right-8 sm:top-28">
           {String(idx + 1).padStart(2, '0')} <span className="mx-1.5 text-white/30">/</span>{' '}
           {String(count).padStart(2, '0')}
         </div>
 
         {/* ── Main content ─────────────────────────────────────────────── */}
-        <div className="relative h-full mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 flex items-center z-10">
+        <div className="relative z-10 mx-auto flex min-h-[calc(100svh-104px)] max-w-7xl items-center px-4 pb-24 pt-16 sm:min-h-[720px] sm:px-6 sm:pb-28 sm:pt-24 lg:min-h-[820px] lg:px-8">
           <AnimatePresence mode="wait">
             <motion.div
               key={`text-${slide.id}`}
@@ -221,36 +230,59 @@ export function HeroSlider({
                   : { opacity: 0, y: -10, filter: 'blur(6px)' }
               }
               transition={{ duration: 0.95, ease: [0.22, 1, 0.36, 1] }}
-              className="max-w-2xl will-change-transform"
+              className="max-w-3xl will-change-transform"
             >
-              <p className="font-mono text-[10px] sm:text-[11px] uppercase tracking-[0.3em] text-amber-200/80 font-semibold mb-5 sm:mb-7">
+              <p className="mb-4 inline-flex items-center gap-3 rounded-full border border-white/12 bg-white/[0.06] px-3.5 py-2 font-mono text-[10px] font-semibold uppercase tracking-[0.26em] text-amber-100/85 backdrop-blur-sm sm:mb-7 sm:text-[11px]">
+                <span className="h-px w-5 bg-amber-200/70" aria-hidden="true" />
                 {slide.eyebrow}
               </p>
 
-              <h1 className="text-[42px] leading-[0.98] sm:text-6xl lg:text-[88px] lg:leading-[0.95] font-bold tracking-tight text-white mb-6 sm:mb-7 text-balance">
+              <h1 className="mb-5 text-[44px] font-bold leading-[0.96] tracking-tight text-white text-balance sm:mb-7 sm:text-6xl lg:text-[92px] lg:leading-[0.92]">
                 {renderTitle(slide.title, slide.accent)}
               </h1>
 
-              <p className="text-base sm:text-lg lg:text-xl text-white/75 leading-relaxed max-w-xl mb-8 sm:mb-10 text-pretty">
+              <p className="mb-7 max-w-xl text-base leading-relaxed text-white/76 text-pretty sm:mb-10 sm:text-lg lg:text-xl">
                 {slide.subtitle}
               </p>
 
-              <div className="flex flex-wrap gap-3">
+              <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
                 <Link
                   href={`/${storeSlug}/products`}
-                  className="group inline-flex items-center gap-2 rounded-full bg-white text-slate-900 px-7 py-4 text-sm font-semibold shadow-2xl shadow-black/50 hover:bg-white/90 hover:-translate-y-0.5 transition-all"
+                  className="group inline-flex w-full items-center justify-center gap-2 rounded-full bg-white px-6 py-4 text-sm font-semibold text-slate-950 shadow-2xl shadow-black/50 transition-all hover:-translate-y-0.5 hover:bg-white/90 sm:w-auto sm:px-7"
                 >
-                  Shop Collection
+                  Voir les produits
                   <ArrowRightIcon className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
                 </Link>
-                <a
-                  href={`#${exploreAnchor}`}
-                  onClick={onExplore}
-                  className="group inline-flex items-center gap-2 rounded-full border border-white/25 bg-white/[0.05] backdrop-blur text-white px-7 py-4 text-sm font-semibold hover:bg-white/[0.12] hover:border-white/45 hover:-translate-y-0.5 transition-all"
-                >
-                  Explore
-                  <ArrowRightIcon className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
-                </a>
+                {whatsAppUrl ? (
+                  <a
+                    href={whatsAppUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="group inline-flex w-full items-center justify-center gap-2 rounded-full border border-[#25D366]/55 bg-[#25D366] px-6 py-4 text-sm font-semibold text-white shadow-2xl shadow-emerald-950/45 transition-all hover:-translate-y-0.5 hover:bg-[#1ebe57] sm:w-auto sm:px-7"
+                  >
+                    WhatsApp
+                    <ArrowRightIcon className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                  </a>
+                ) : (
+                  <a
+                    href={`#${exploreAnchor}`}
+                    onClick={onExplore}
+                    className="group inline-flex w-full items-center justify-center gap-2 rounded-full border border-white/25 bg-white/[0.06] px-6 py-4 text-sm font-semibold text-white backdrop-blur-sm transition-all hover:-translate-y-0.5 hover:border-white/45 hover:bg-white/[0.12] sm:w-auto sm:px-7"
+                  >
+                    Explorer
+                    <ArrowRightIcon className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                  </a>
+                )}
+              </div>
+
+              <div className="mt-8 grid max-w-xl grid-cols-3 gap-2 border-y border-white/10 py-4 sm:mt-10 sm:gap-4">
+                {['Stock live', 'Order rapide', 'Sélection premium'].map((item) => (
+                  <div key={item}>
+                    <p className="font-mono text-[9px] uppercase tracking-[0.18em] text-white/48 sm:text-[10px]">
+                      {item}
+                    </p>
+                  </div>
+                ))}
               </div>
             </motion.div>
           </AnimatePresence>
@@ -263,7 +295,7 @@ export function HeroSlider({
               type="button"
               onClick={prev}
               aria-label="Previous slide"
-              className="absolute left-3 sm:left-6 top-1/2 -translate-y-1/2 z-20 h-11 w-11 sm:h-12 sm:w-12 rounded-full border border-white/20 bg-black/30 backdrop-blur-md hover:bg-black/55 hover:border-white/45 transition-all flex items-center justify-center text-white"
+              className="absolute left-3 top-1/2 z-20 hidden h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/20 bg-black/30 text-white backdrop-blur-md transition-all hover:border-white/45 hover:bg-black/55 sm:left-6 sm:flex sm:h-12 sm:w-12"
             >
               <ArrowLeftIcon className="h-4 w-4" />
             </button>
@@ -271,7 +303,7 @@ export function HeroSlider({
               type="button"
               onClick={next}
               aria-label="Next slide"
-              className="absolute right-3 sm:right-6 top-1/2 -translate-y-1/2 z-20 h-11 w-11 sm:h-12 sm:w-12 rounded-full border border-white/20 bg-black/30 backdrop-blur-md hover:bg-black/55 hover:border-white/45 transition-all flex items-center justify-center text-white"
+              className="absolute right-3 top-1/2 z-20 hidden h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/20 bg-black/30 text-white backdrop-blur-md transition-all hover:border-white/45 hover:bg-black/55 sm:right-6 sm:flex sm:h-12 sm:w-12"
             >
               <ArrowRightIcon className="h-4 w-4" />
             </button>
