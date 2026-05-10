@@ -1,3 +1,4 @@
+import type { Prisma } from '@prisma/client'
 import { db } from '@/lib/db'
 
 // ─── Public-safe field selectors ─────────────────────────────────────────────
@@ -32,6 +33,27 @@ const PUBLIC_PRODUCT_SELECT = {
       },
     },
     orderBy: { sortOrder: 'asc' as const },
+  },
+  brand: { select: { id: true, name: true, slug: true } },
+} as const
+
+const PUBLIC_PRODUCT_CARD_SELECT = {
+  id: true,
+  name: true,
+  category: true,
+  imageUrl: true,
+  price: true,
+  sizes: {
+    select: { size: true, quantity: true },
+    orderBy: { size: 'asc' as const },
+  },
+  variants: {
+    select: {
+      sizes: {
+        select: { size: true, quantity: true },
+        orderBy: { size: 'asc' as const },
+      },
+    },
   },
   brand: { select: { id: true, name: true, slug: true } },
 } as const
@@ -125,6 +147,53 @@ export async function getPublicProduct(storeId: string, productId: string) {
     select: PUBLIC_PRODUCT_SELECT,
   })
   return p ? serializeProduct(p) : null
+}
+
+export async function getRelatedPublicProducts(
+  storeId: string,
+  product: {
+    id: string
+    category: string | null
+    brand: { id: string } | null
+  },
+  limit = 8
+) {
+  const related: ReturnType<typeof serializeProduct>[] = []
+  const seen = new Set([product.id])
+
+  async function append(where: Prisma.ProductWhereInput = {}) {
+    if (related.length >= limit) return
+
+    const rows = await db.product.findMany({
+      where: {
+        storeId,
+        isActive: true,
+        deletedAt: null,
+        id: { notIn: Array.from(seen) },
+        ...where,
+      },
+      select: PUBLIC_PRODUCT_CARD_SELECT,
+      orderBy: { createdAt: 'desc' },
+      take: limit - related.length,
+    })
+
+    for (const row of rows) {
+      seen.add(row.id)
+      related.push(serializeProduct(row))
+    }
+  }
+
+  if (product.category) {
+    await append({ category: { equals: product.category, mode: 'insensitive' } })
+  }
+
+  if (product.brand?.id) {
+    await append({ brandId: product.brand.id })
+  }
+
+  await append({})
+
+  return related.slice(0, limit)
 }
 
 export async function getPublicCategories(storeId: string): Promise<string[]> {

@@ -1,7 +1,9 @@
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
-import { getPublicStore, getPublicProduct } from '@/lib/storefront/storefront.service'
+import { getServerI18n } from '@/lib/i18n/server'
+import { getPublicStore, getPublicProduct, getRelatedPublicProducts } from '@/lib/storefront/storefront.service'
 import { buildProductWhatsAppUrl } from '@/lib/storefront/whatsapp'
+import { RelatedProducts } from '../../_components/related-products'
 import { ProductDetailInteractive } from './product-detail-interactive'
 
 export const dynamic = 'force-dynamic'
@@ -35,6 +37,8 @@ export default async function ProductDetailPage({ params }: Props) {
   const product = await getPublicProduct(store.id, params.productId)
   if (!product) notFound()
 
+  const { t } = getServerI18n()
+  const relatedProducts = await getRelatedPublicProducts(store.id, product, 8)
   const whatsAppUrl = buildProductWhatsAppUrl(store, product)
   const formattedPrice = product.price.toLocaleString('fr-MA', {
     style: 'currency',
@@ -43,11 +47,21 @@ export default async function ProductDetailPage({ params }: Props) {
   })
 
   return (
-    <ProductDetailInteractive
-      store={store}
-      product={product as any}
-      whatsAppUrl={whatsAppUrl}
-      formattedPrice={formattedPrice}
-    />
+    <>
+      <ProductDetailInteractive
+        store={store}
+        product={product as any}
+        whatsAppUrl={whatsAppUrl}
+        formattedPrice={formattedPrice}
+      />
+      <RelatedProducts
+        products={relatedProducts as any}
+        storeSlug={store.slug}
+        eyebrow={t('storefront.relatedProducts.eyebrow')}
+        title={t('storefront.relatedProducts.title')}
+        description={t('storefront.relatedProducts.description')}
+        viewAllLabel={t('storefront.relatedProducts.viewAll')}
+      />
+    </>
   )
 }

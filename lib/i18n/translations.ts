@@ -361,6 +361,10 @@ const en: Dictionary = {
   'export.values.in': 'In',
   'export.values.out': 'Out',
   'export.values.adjustment': 'Adjustment',
+  'storefront.relatedProducts.eyebrow': 'Curated matches',
+  'storefront.relatedProducts.title': 'Similar products',
+  'storefront.relatedProducts.description': 'More pieces from the same category, brand, or latest store arrivals.',
+  'storefront.relatedProducts.viewAll': 'View all',
 }
 
 const fr: Dictionary = {
@@ -722,6 +726,10 @@ const fr: Dictionary = {
   'export.values.in': 'Entrée',
   'export.values.out': 'Sortie',
   'export.values.adjustment': 'Ajustement',
+  'storefront.relatedProducts.eyebrow': 'Sélection assortie',
+  'storefront.relatedProducts.title': 'Produits similaires',
+  'storefront.relatedProducts.description': 'D’autres pièces de la même catégorie, de la même marque ou des nouveautés de la boutique.',
+  'storefront.relatedProducts.viewAll': 'Voir tout',
 }
 
 const ar: Dictionary = {
@@ -758,6 +766,10 @@ const ar: Dictionary = {
   'common.actions.record': 'تسجيل',
   'common.actions.in': 'دخول',
   'common.actions.out': 'خروج',
+  'storefront.relatedProducts.eyebrow': 'اختيارات مشابهة',
+  'storefront.relatedProducts.title': 'منتجات مشابهة',
+  'storefront.relatedProducts.description': 'قطع أخرى من نفس الفئة أو العلامة أو من أحدث منتجات المتجر.',
+  'storefront.relatedProducts.viewAll': 'عرض الكل',
   'common.actions.set': 'تعيين',
   'common.actions.activate': 'تفعيل',
   'common.actions.deactivate': 'تعطيل',
@@ -1119,6 +1131,10 @@ const darija: Dictionary = {
   'common.actions.record': 'سجّل',
   'common.actions.in': 'دخل',
   'common.actions.out': 'خرج',
+  'storefront.relatedProducts.eyebrow': 'اختيارات قريبين',
+  'storefront.relatedProducts.title': 'منتوجات مشابهة',
+  'storefront.relatedProducts.description': 'منتوجات خرين من نفس الكاتيجوري، نفس الماركة، ولا آخر الجديد فالمحل.',
+  'storefront.relatedProducts.viewAll': 'شوف الكل',
   'common.actions.set': 'حدّد',
   'common.actions.activate': 'فعّل',
   'common.actions.deactivate': 'حبّس',

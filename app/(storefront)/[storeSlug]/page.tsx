@@ -38,9 +38,10 @@ export default async function StorefrontHomePage({ params }: Props) {
   const whatsAppUrl = buildStoreWhatsAppUrl(store)
   // Featured grid uses up to 8 of the latest products
   const featured = products.slice(0, 8)
+  const isBenami = store.slug === 'benami'
 
   return (
-    <div className="relative">
+    <div className="relative overflow-x-clip">
       {/* ── Editorial hero (curated visuals — NOT bound to DB products) ── */}
       <HeroSlider
         storeSlug={store.slug}
@@ -48,10 +49,11 @@ export default async function StorefrontHomePage({ params }: Props) {
         heroImageUrl={store.heroImageUrl}
         whatsAppUrl={whatsAppUrl}
         exploreAnchor="featured"
+        variant={isBenami ? 'benami' : 'default'}
       />
 
       {/* ── Trust strip — dark editorial ─────────────────────────────────── */}
-      <section className="relative overflow-hidden border-y border-white/10 bg-[#0b0b0a]/85 text-white">
+      <section className={`relative overflow-hidden border-y border-white/10 text-white ${isBenami ? 'bg-[#0a0a09]/95' : 'bg-[#0b0b0a]/85'}`}>
         <div
           aria-hidden="true"
           className="absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-black/70 to-transparent"
@@ -64,29 +66,32 @@ export default async function StorefrontHomePage({ params }: Props) {
           aria-hidden="true"
           className="absolute left-1/2 top-10 h-80 w-80 -translate-x-1/2 rounded-full bg-amber-300/[0.045] blur-3xl"
         />
-        <div className="relative mx-auto grid max-w-7xl grid-cols-1 gap-5 px-4 py-8 sm:grid-cols-3 sm:gap-0 sm:px-6 sm:py-12 lg:px-8 lg:py-16">
-          <Reveal delay={0} className="sm:pr-8">
+        <div className={`relative mx-auto grid max-w-7xl grid-cols-1 px-4 sm:grid-cols-3 sm:px-6 lg:px-8 ${isBenami ? 'gap-3 py-6 sm:gap-3 sm:py-10 lg:py-12' : 'gap-5 py-8 sm:gap-0 sm:py-12 lg:py-16'}`}>
+          <Reveal delay={0} className={isBenami ? '' : 'sm:pr-8'}>
             <TrustBadge
               num="01"
               icon={<WhatsAppIcon className="h-5 w-5 text-[#25D366]" />}
               title="WhatsApp Concierge"
-              description="One tap. No checkout, no account. Real humans on the other end."
+              description={isBenami ? 'Order in one clear message. No account, no checkout friction.' : 'One tap. No checkout, no account. Real humans on the other end.'}
+              compact={isBenami}
             />
           </Reveal>
-          <Reveal delay={120} className="border-t border-white/10 pt-5 sm:border-l sm:border-t-0 sm:px-8 sm:pt-0">
+          <Reveal delay={120} className={isBenami ? '' : 'border-t border-white/10 pt-5 sm:border-l sm:border-t-0 sm:px-8 sm:pt-0'}>
             <TrustBadge
               num="02"
               icon={<BoltIcon className="h-5 w-5 text-amber-300" />}
               title="Express Reply"
-              description="Average response within minutes during business hours."
+              description={isBenami ? 'Quick replies during opening hours, with size and availability confirmed.' : 'Average response within minutes during business hours.'}
+              compact={isBenami}
             />
           </Reveal>
-          <Reveal delay={240} className="border-t border-white/10 pt-5 sm:border-l sm:border-t-0 sm:pl-8 sm:pt-0">
+          <Reveal delay={240} className={isBenami ? '' : 'border-t border-white/10 pt-5 sm:border-l sm:border-t-0 sm:pl-8 sm:pt-0'}>
             <TrustBadge
               num="03"
               icon={<CheckBadgeIcon className="h-5 w-5 text-emerald-300" />}
               title="Live Inventory"
-              description="Real-time stock signed at the atelier — no surprises after you order."
+              description={isBenami ? 'Product cards show live stock signals so sold-out pairs are obvious.' : 'Real-time stock signed at the atelier — no surprises after you order.'}
+              compact={isBenami}
             />
           </Reveal>
         </div>
@@ -101,6 +106,7 @@ export default async function StorefrontHomePage({ params }: Props) {
           volumeCode="02"
           heading="Fresh stock, ready to order"
           headingAccent="ready"
+          variant={isBenami ? 'benami' : 'default'}
         />
       </div>
 
@@ -109,7 +115,7 @@ export default async function StorefrontHomePage({ params }: Props) {
 
       {/* ── Categories ───────────────────────────────────────────────────── */}
       {categories.length > 0 && (
-        <section className="relative overflow-hidden py-14 text-white sm:py-24">
+        <section className={`relative overflow-hidden text-white ${isBenami ? 'py-12 sm:py-20' : 'py-14 sm:py-24'}`}>
           <div
             aria-hidden="true"
             className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-black/20 to-transparent"
@@ -124,12 +130,12 @@ export default async function StorefrontHomePage({ params }: Props) {
           />
           <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <Reveal>
-              <div className="mb-8 max-w-3xl sm:mb-12">
+              <div className={`${isBenami ? 'mb-7 sm:mb-10' : 'mb-8 sm:mb-12'} max-w-3xl`}>
                 <p className="mb-4 flex items-center gap-3 font-mono text-[10px] font-semibold uppercase tracking-[0.28em] text-amber-200/70 sm:text-[11px]">
                   <span aria-hidden="true" className="w-6 h-px bg-amber-300/60" />
                   <span>04 / Categories</span>
                 </p>
-                <h2 className="font-serif text-3xl leading-[1.05] text-white text-balance sm:text-5xl lg:text-6xl">
+                <h2 className={`font-serif leading-[1.05] text-white text-balance ${isBenami ? 'text-[2rem] sm:text-5xl lg:text-[3.75rem]' : 'text-3xl sm:text-5xl lg:text-6xl'}`}>
                   Browse by{' '}
                   <em className="italic font-light text-amber-200/95">category</em>.
                 </h2>
@@ -244,14 +250,16 @@ function TrustBadge({
   icon,
   title,
   description,
+  compact = false,
 }: {
   num: string
   icon: React.ReactNode
   title: string
   description: string
+  compact?: boolean
 }) {
   return (
-    <div className="flex h-full flex-col gap-3 sm:gap-5">
+    <div className={`flex h-full flex-col border-white/10 ${compact ? 'gap-3 rounded-3xl border bg-white/[0.045] p-4 shadow-lg shadow-black/10 backdrop-blur-sm sm:p-5 lg:p-6' : 'gap-3 sm:gap-5'}`}>
       <div className="flex items-center justify-between">
         <span className="flex items-center gap-3 font-mono text-[10px] uppercase tracking-[0.28em] text-white/45">
           <span aria-hidden="true" className="w-6 h-px bg-white/30" />
@@ -259,10 +267,10 @@ function TrustBadge({
         </span>
         <div className="text-white/85">{icon}</div>
       </div>
-      <h3 className="font-serif text-xl leading-tight text-white text-balance sm:text-3xl">
+      <h3 className={`font-serif leading-tight text-white text-balance ${compact ? 'text-xl sm:text-2xl' : 'text-xl sm:text-3xl'}`}>
         {title}
       </h3>
-      <p className="max-w-sm text-sm leading-relaxed text-white/58 sm:text-[15px]">
+      <p className={`max-w-sm text-sm leading-relaxed text-white/60 ${compact ? 'sm:text-sm' : 'sm:text-[15px]'}`}>
         {description}
       </p>
     </div>

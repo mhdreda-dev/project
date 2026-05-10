@@ -73,6 +73,7 @@ type Props = {
   exploreAnchor?: string
   /** Pause between slides in ms. Default 5200. */
   intervalMs?: number
+  variant?: 'default' | 'benami'
 }
 
 function renderTitle(title: string, accent: string) {
@@ -96,8 +97,10 @@ export function HeroSlider({
   whatsAppUrl,
   exploreAnchor = 'featured',
   intervalMs = 5200,
+  variant = 'default',
 }: Props) {
   const shouldReduceMotion = useReducedMotion()
+  const isBenami = variant === 'benami'
   const slides = heroImageUrl
     ? [
         {
@@ -148,7 +151,7 @@ export function HeroSlider({
       aria-roledescription="carousel"
       aria-label="Editorial campaign"
     >
-      <div className="relative min-h-[calc(100svh-104px)] sm:min-h-[720px] lg:min-h-[820px] lg:max-h-[940px]">
+      <div className={`relative ${isBenami ? 'min-h-[650px] sm:min-h-[720px] lg:min-h-[780px] lg:max-h-[900px]' : 'min-h-[calc(100svh-104px)] sm:min-h-[720px] lg:min-h-[820px] lg:max-h-[940px]'}`}>
         {/* ── Slide image with crossfade + ken-burns ───────────────────── */}
         <AnimatePresence>
           <motion.div
@@ -172,8 +175,8 @@ export function HeroSlider({
               className="object-cover"
             />
             {/* Cinematic gradient overlays (legibility + mood) */}
-            <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/48 to-black/20" />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#080807] via-black/35 to-black/15" />
+            <div className={`absolute inset-0 bg-gradient-to-r ${isBenami ? 'from-black/92 via-black/54 to-black/18' : 'from-black/90 via-black/48 to-black/20'}`} />
+            <div className={`absolute inset-0 bg-gradient-to-t ${isBenami ? 'from-[#080807] via-black/40 to-black/10' : 'from-[#080807] via-black/35 to-black/15'}`} />
           </motion.div>
         </AnimatePresence>
 
@@ -188,7 +191,7 @@ export function HeroSlider({
             }}
           />
           <div
-            className="absolute inset-0 opacity-70"
+            className={`absolute inset-0 ${isBenami ? 'opacity-55' : 'opacity-70'}`}
             style={{
               background:
                 'linear-gradient(115deg, rgba(251,191,36,0.18) 0%, transparent 34%, rgba(255,255,255,0.06) 50%, transparent 72%)',
@@ -204,13 +207,13 @@ export function HeroSlider({
         </div>
 
         {/* ── Top corner UI: slide counter ─────────────────────────────── */}
-        <div className="absolute right-4 top-20 z-20 rounded-full border border-white/10 bg-black/25 px-3 py-2 font-mono text-[10px] uppercase tracking-[0.3em] text-white/65 backdrop-blur-sm sm:right-8 sm:top-28">
+        <div className="absolute right-4 top-[4.5rem] z-20 rounded-full border border-white/10 bg-black/30 px-3 py-2 font-mono text-[10px] uppercase tracking-[0.3em] text-white/65 backdrop-blur-sm sm:right-8 sm:top-28">
           {String(idx + 1).padStart(2, '0')} <span className="mx-1.5 text-white/30">/</span>{' '}
           {String(count).padStart(2, '0')}
         </div>
 
         {/* ── Main content ─────────────────────────────────────────────── */}
-        <div className="relative z-10 mx-auto flex min-h-[calc(100svh-104px)] max-w-7xl items-center px-4 pb-24 pt-16 sm:min-h-[720px] sm:px-6 sm:pb-28 sm:pt-24 lg:min-h-[820px] lg:px-8">
+        <div className={`relative z-10 mx-auto flex max-w-7xl items-center px-4 sm:px-6 lg:px-8 ${isBenami ? 'min-h-[650px] pb-20 pt-24 sm:min-h-[720px] sm:pb-24 sm:pt-24 lg:min-h-[780px]' : 'min-h-[calc(100svh-104px)] pb-24 pt-16 sm:min-h-[720px] sm:pb-28 sm:pt-24 lg:min-h-[820px]'}`}>
           <AnimatePresence mode="wait">
             <motion.div
               key={`text-${slide.id}`}
@@ -230,22 +233,22 @@ export function HeroSlider({
                   : { opacity: 0, y: -10, filter: 'blur(6px)' }
               }
               transition={{ duration: 0.95, ease: [0.22, 1, 0.36, 1] }}
-              className="max-w-3xl will-change-transform"
+              className={isBenami ? 'max-w-[46rem] will-change-transform' : 'max-w-3xl will-change-transform'}
             >
-              <p className="mb-4 inline-flex items-center gap-3 rounded-full border border-white/12 bg-white/[0.06] px-3.5 py-2 font-mono text-[10px] font-semibold uppercase tracking-[0.26em] text-amber-100/85 backdrop-blur-sm sm:mb-7 sm:text-[11px]">
+              <p className="mb-4 inline-flex max-w-full items-center gap-3 rounded-full border border-white/12 bg-white/[0.06] px-3.5 py-2 font-mono text-[10px] font-semibold uppercase tracking-[0.24em] text-amber-100/85 backdrop-blur-sm sm:mb-7 sm:text-[11px] sm:tracking-[0.26em]">
                 <span className="h-px w-5 bg-amber-200/70" aria-hidden="true" />
                 {slide.eyebrow}
               </p>
 
-              <h1 className="mb-5 text-[44px] font-bold leading-[0.96] tracking-tight text-white text-balance sm:mb-7 sm:text-6xl lg:text-[92px] lg:leading-[0.92]">
+              <h1 className={`mb-5 font-bold text-white text-balance sm:mb-7 ${isBenami ? 'text-[42px] leading-[0.94] tracking-[-0.045em] sm:text-6xl lg:text-[86px] lg:leading-[0.9]' : 'text-[44px] leading-[0.96] tracking-tight sm:text-6xl lg:text-[92px] lg:leading-[0.92]'}`}>
                 {renderTitle(slide.title, slide.accent)}
               </h1>
 
-              <p className="mb-7 max-w-xl text-base leading-relaxed text-white/76 text-pretty sm:mb-10 sm:text-lg lg:text-xl">
+              <p className={`max-w-xl text-base leading-relaxed text-white/76 text-pretty sm:text-lg ${isBenami ? 'mb-6 lg:mb-8 lg:text-[19px]' : 'mb-7 sm:mb-10 lg:text-xl'}`}>
                 {slide.subtitle}
               </p>
 
-              <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+              <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
                 <Link
                   href={`/${storeSlug}/products`}
                   className="group inline-flex w-full items-center justify-center gap-2 rounded-full bg-white px-6 py-4 text-sm font-semibold text-slate-950 shadow-2xl shadow-black/50 transition-all hover:-translate-y-0.5 hover:bg-white/90 sm:w-auto sm:px-7"
@@ -260,7 +263,7 @@ export function HeroSlider({
                     rel="noopener noreferrer"
                     className="group inline-flex w-full items-center justify-center gap-2 rounded-full border border-[#25D366]/55 bg-[#25D366] px-6 py-4 text-sm font-semibold text-white shadow-2xl shadow-emerald-950/45 transition-all hover:-translate-y-0.5 hover:bg-[#1ebe57] sm:w-auto sm:px-7"
                   >
-                    WhatsApp
+                    Commander sur WhatsApp
                     <ArrowRightIcon className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
                   </a>
                 ) : (
@@ -275,10 +278,10 @@ export function HeroSlider({
                 )}
               </div>
 
-              <div className="mt-8 grid max-w-xl grid-cols-3 gap-2 border-y border-white/10 py-4 sm:mt-10 sm:gap-4">
-                {['Stock live', 'Order rapide', 'Sélection premium'].map((item) => (
-                  <div key={item}>
-                    <p className="font-mono text-[9px] uppercase tracking-[0.18em] text-white/48 sm:text-[10px]">
+              <div className={`${isBenami ? 'mt-6 sm:mt-8' : 'mt-8 sm:mt-10'} grid max-w-xl grid-cols-3 gap-2 border-y border-white/10 py-4 sm:gap-4`}>
+                {['Stock live', 'Réponse rapide', 'Sélection premium'].map((item) => (
+                  <div key={item} className="min-w-0">
+                    <p className="text-center font-mono text-[8px] uppercase leading-relaxed tracking-[0.14em] text-white/50 sm:text-left sm:text-[10px] sm:tracking-[0.18em]">
                       {item}
                     </p>
                   </div>

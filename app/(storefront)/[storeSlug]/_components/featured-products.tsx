@@ -13,6 +13,7 @@ type Props = {
   heading?: string
   /** Optional italic accent word inside the heading. */
   headingAccent?: string
+  variant?: 'default' | 'benami'
 }
 
 export function FeaturedProducts({
@@ -22,13 +23,15 @@ export function FeaturedProducts({
   volumeCode = '02',
   heading = 'Latest products',
   headingAccent = 'products',
+  variant = 'default',
 }: Props) {
   if (products.length === 0) return null
 
   const accentIdx = headingAccent ? heading.lastIndexOf(headingAccent) : -1
+  const isBenami = variant === 'benami'
 
   return (
-    <section className="relative overflow-hidden py-14 sm:py-24 lg:py-28">
+    <section className={`relative overflow-hidden ${isBenami ? 'py-12 sm:py-20 lg:py-24' : 'py-14 sm:py-24 lg:py-28'}`}>
       <div
         aria-hidden="true"
         className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-black/45 to-transparent"
@@ -44,7 +47,7 @@ export function FeaturedProducts({
 
       <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <Reveal>
-          <div className="mb-9 flex flex-col gap-6 sm:mb-14 lg:flex-row lg:items-end lg:justify-between">
+          <div className={`${isBenami ? 'mb-8 sm:mb-11' : 'mb-9 sm:mb-14'} flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between`}>
             <div className="min-w-0">
               <p className="mb-4 flex items-center gap-3 font-mono text-[10px] font-semibold uppercase tracking-[0.28em] text-amber-200/70 sm:mb-5 sm:text-[11px]">
                 <span aria-hidden="true" className="w-6 h-px bg-amber-200/45" />
@@ -52,7 +55,7 @@ export function FeaturedProducts({
                   {volumeCode} / {eyebrow}
                 </span>
               </p>
-              <h2 className="font-serif text-3xl leading-[1.05] text-white text-balance sm:text-5xl lg:text-6xl">
+              <h2 className={`font-serif leading-[1.05] text-white text-balance ${isBenami ? 'text-[2rem] sm:text-5xl lg:text-[3.75rem]' : 'text-3xl sm:text-5xl lg:text-6xl'}`}>
                 {accentIdx >= 0 ? (
                   <>
                     {heading.slice(0, accentIdx)}
@@ -63,8 +66,10 @@ export function FeaturedProducts({
                   heading
                 )}
               </h2>
-              <p className="mt-4 max-w-2xl text-sm leading-6 text-white/58 sm:text-base">
-                A refined edit of the newest pieces in stock, selected for quick browsing and direct WhatsApp ordering.
+              <p className="mt-4 max-w-2xl text-sm leading-6 text-white/60 sm:text-base">
+                {isBenami
+                  ? 'Sneakers, essentials, and fresh arrivals with live stock status and direct WhatsApp ordering.'
+                  : 'A refined edit of the newest pieces in stock, selected for quick browsing and direct WhatsApp ordering.'}
               </p>
             </div>
             <Link
@@ -77,13 +82,14 @@ export function FeaturedProducts({
           </div>
         </Reveal>
 
-        <div className="grid grid-cols-2 gap-x-3 gap-y-8 sm:grid-cols-3 sm:gap-x-5 sm:gap-y-11 lg:grid-cols-4 lg:gap-x-6 xl:gap-x-8">
+        <div className={`grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 ${isBenami ? 'gap-x-3 gap-y-9 sm:gap-x-5 sm:gap-y-10 lg:gap-x-6 xl:gap-x-7' : 'gap-x-3 gap-y-8 sm:gap-x-5 sm:gap-y-11 lg:gap-x-6 xl:gap-x-8'}`}>
           {products.map((product, idx) => (
             <Reveal key={product.id} delay={Math.min(idx * 60, 360)} variant="up">
               <ProductCard
                 product={product}
                 href={`/${storeSlug}/products/${product.id}`}
                 tone="dark"
+                presentation={isBenami ? 'benami' : 'default'}
               />
             </Reveal>
           ))}
